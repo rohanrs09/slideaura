@@ -1,17 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { useUser } from "@clerk/clerk-react";
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { firebaseDb } from "../../config/FireBaseConfig";
-import { doc, getDoc, setDoc} from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useEffect } from "react";
 import { useContext } from "react";
-import {UserDetailContext} from "../../context/UserDetailContext";
+import { UserDetailContext } from "../../context/UserDetailContext";
 import Header from "@/components/custom/Header";
-
+import PromptBox from "@/components/custom/PromptBox";
 
 function WorkSpace() {
   const { user } = useUser();
-  const {  setUserDetail } = useContext(UserDetailContext);
+  const { setUserDetail } = useContext(UserDetailContext);
+  const location = useLocation();
 
   // check user when logged in
   useEffect(() => {
@@ -22,7 +23,7 @@ function WorkSpace() {
 
   const CreateNewUser = async () => {
     if (!user?.primaryEmailAddress?.emailAddress) return;
-    
+
     // get user reference
     const docRef = doc(
       firebaseDb,
@@ -45,11 +46,10 @@ function WorkSpace() {
           createdAt: new Date(),
           credits: 2,
         };
-        
+
         await setDoc(docRef, newUser);
         setUserDetail(newUser);
         console.log("New user created:", newUser);
-
       }
     } catch (error) {
       console.error("Error:", error);
@@ -72,6 +72,7 @@ function WorkSpace() {
   return (
     <div>
       <Header />
+      {location.pathname === "/workspace" && <PromptBox />} 
       <Outlet />
     </div>
   );
