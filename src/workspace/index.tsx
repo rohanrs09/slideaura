@@ -8,6 +8,7 @@ import { useContext } from "react";
 import { UserDetailContext } from "../../context/UserDetailContext";
 import Header from "@/components/custom/Header";
 import PromptBox from "@/components/custom/PromptBox";
+import MyProjects from "@/components/custom/MyProjects";
 
 function WorkSpace() {
   const { user } = useUser();
@@ -72,7 +73,13 @@ function WorkSpace() {
   return (
     <div>
       <Header />
-      {location.pathname === "/workspace" && <PromptBox />} 
+      {location.pathname === "/workspace" && 
+        <div>
+          
+          <PromptBox />
+          <MyProjects />
+        </div>
+      }
       <Outlet />
     </div>
   );
