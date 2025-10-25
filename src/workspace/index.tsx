@@ -4,10 +4,14 @@ import { Link, Outlet } from "react-router-dom";
 import { firebaseDb } from "../../config/FireBaseConfig";
 import { doc, getDoc, setDoc} from "firebase/firestore";
 import { useEffect } from "react";
+import { useContext } from "react";
+import {UserDetailContext} from "../../context/UserDetailContext";
+import Header from "@/components/custom/Header";
+
 
 function WorkSpace() {
   const { user } = useUser();
-  const { userDetail, setUserDetail } = useContext(UserDetailContext);
+  const {  setUserDetail } = useContext(UserDetailContext);
 
   // check user when logged in
   useEffect(() => {
@@ -67,7 +71,7 @@ function WorkSpace() {
 
   return (
     <div>
-      WorkSpace
+      <Header />
       <Outlet />
     </div>
   );

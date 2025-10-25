@@ -1,3 +1,3 @@
 import {createContext} from "react";
 
-export default UserDetailContext=createContext(null);
+export const UserDetailContext = createContext<any>(null);

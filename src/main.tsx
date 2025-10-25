@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.tsx";
@@ -6,7 +6,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import WorkSpace from "./workspace/index.tsx";
 import Project from "./workspace/project/index.tsx";
 import { ClerkProvider } from "@clerk/clerk-react";
-import {UserDetailContext} from "./../../context/UserDetailContext";
+import { UserDetailContext } from "../context/UserDetailContext";
 
 const router = createBrowserRouter([
   { path: "/", element: <App /> },
@@ -34,7 +34,7 @@ function Root() {
       <RouterProvider router={router} />
       </UserDetailContext.Provider>
     </ClerkProvider>
-  );
+  ); 
 }
 
 createRoot(document.getElementById("root")!).render(
