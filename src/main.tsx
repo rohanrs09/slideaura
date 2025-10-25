@@ -1,36 +1,44 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
-import { createBrowserRouter,RouterProvider } from 'react-router-dom'
-import WorkSpace from './workspace/index.tsx'
-import Project from './workspace/project/index.tsx'
-  import { ClerkProvider } from '@clerk/clerk-react'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import App from "./App.tsx";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import WorkSpace from "./workspace/index.tsx";
+import Project from "./workspace/project/index.tsx";
+import { ClerkProvider } from "@clerk/clerk-react";
+import {UserDetailContext} from "./../../context/UserDetailContext";
 
-
-const router= createBrowserRouter([
-  {path:'/', element:<App/>},
-  {path:'/workspace',element:<WorkSpace/>,
-    children:[
-      {path:'project/:projectId',element:<Project/>}
-    ]
-  }
-
+const router = createBrowserRouter([
+  { path: "/", element: <App /> },
+  {
+    path: "/workspace",
+    element: <WorkSpace />,
+    children: [{ path: "project/:projectId", element: <Project /> }],
+  },
 ]);
 
 // Import your Publishable Key
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!PUBLISHABLE_KEY) {
-  throw new Error('Missing Publishable Key')
+  throw new Error("Missing Publishable Key");
 }
 
+function Root() {
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+  const [userDetail,setUserDetail]=useState();
+
+  return (
     <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-        
-    <RouterProvider  router={router}/>
+      <UserDetailContext.Provider value={{userDetail,setUserDetail}}>
+      <RouterProvider router={router} />
+      </UserDetailContext.Provider>
     </ClerkProvider>
-  </StrictMode>,
-)
+  );
+}
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <Root />
+  </StrictMode>
+);
