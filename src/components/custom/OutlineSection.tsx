@@ -3,13 +3,15 @@ import { Skeleton } from '../ui/skeleton'
 import type { Outline } from '@/workspace/project/outline';
 import { Button } from '../ui/button';
 import { ArrowRight, Edit } from 'lucide-react';
+import EditOutlineDialog from './EditOutlineDialog'; 
 
 type Props={
     loading:boolean;
     outline:Outline[];
+    handleUpdateOutline :any;
 }
 
-function OutlineSection({loading,outline}:Props) {
+function OutlineSection({loading,outline,handleUpdateOutline}:Props) {
   return (
     <div className='mt-8'>
     <h1 className='font-bold text-xl'>Sliders Outline</h1>
@@ -32,16 +34,14 @@ function OutlineSection({loading,outline}:Props) {
                 <p>{item.outline}</p>
                 </div>
                 </div>
+                <EditOutlineDialog outlineData={item} onUpdate={handleUpdateOutline}>
                 <Button variant={'ghost'} size={'icon-lg'}> <Edit /> </Button>
+                </EditOutlineDialog>
             </div>
         ))}
     </div>
 
-    <Button size={'lg'} className='fixed bottom-6 transform left-1/2 -translate-x-1/2 '>
-        Generate Slider <ArrowRight />
-    </Button>
 
-    
 </div>
   )
 }
