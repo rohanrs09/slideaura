@@ -62,7 +62,7 @@ const DUMMY_OUTLINE = [
   },
 ];
 
-type Project = {
+export type Project = {
   projectId: string;
   userInputPrompt: string;
   createdAt: string;
@@ -139,7 +139,10 @@ function Outline() {
   });
   setUpdateDbLoading(false);
 
-  //nsvigate to slider editor page
+  //navigate to slider editor page
+  
+
+
 };
 
 
