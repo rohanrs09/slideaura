@@ -68,6 +68,8 @@ export type Project = {
   createdAt: string;
   noOfSlides: string;
   outline: Outline[];
+  designStyle: DesignStyle;
+  slides:any[];
 };
 
 export type Outline = {
@@ -75,6 +77,12 @@ export type Outline = {
   slidePoint: string;
   outline: string;
 };
+
+export type DesignStyle={
+  colors:any,
+  designGuide:string,
+  styleName:string
+}
 
 function Outline() {
   const { projectId } = useParams();
