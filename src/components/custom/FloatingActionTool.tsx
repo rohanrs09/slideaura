@@ -1,13 +1,17 @@
-import { ArrowRight, Sparkle, Sparkles, X } from 'lucide-react';
-import React from 'react'
+import { ArrowRight, Loader2Icon, Sparkle, Sparkles, X } from 'lucide-react';
+import React, { useState } from 'react'
 import { Button } from '../ui/button';
 
 type Props ={
     position:{x:number,y:number} | null,
-    onClose:()=>void
+    onClose:()=>void,
+    handleAiChange:any,
+    loading:boolean
 }
 
-function FloatingActionTool({position,onClose}:Props) {
+function FloatingActionTool({position,onClose,handleAiChange,loading}:Props) {
+
+    const [userAiPrompt,setUserAiPrompt]=useState<string>();
     if(!position) return;
 
   return (
@@ -21,10 +25,17 @@ function FloatingActionTool({position,onClose}:Props) {
     >
         <div className='flex gap-2 items-center'>
             <Sparkles className='h-4 w-4'/>
-            <input type="text" placeholder='Edit with AI' className='outline-none border-none'/>
-        <Button variant={'ghost'} size={'icon-sm'}>
+            <input type="text" placeholder='Edit with AI' className='outline-none border-none'
+            onChange={(event)=>setUserAiPrompt(event.target.value)}
+            disabled={loading}
+            value={userAiPrompt}
+            />
+        {userAiPrompt && 
+        <Button variant={'ghost'} size={'icon-sm'} onClick={()=>{handleAiChange(userAiPrompt); setUserAiPrompt('')}}>
             <ArrowRight className='h-2 w-4' />
         </Button>
+        }
+        {loading && <Loader2Icon className='animate-spin'/>}
         </div>
         <Button variant={'ghost'} size={'icon-sm'} className='ml-1'
         onClick={onClose}><X /></Button>
