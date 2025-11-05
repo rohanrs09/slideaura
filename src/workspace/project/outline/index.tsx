@@ -1,12 +1,13 @@
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { firebaseDb, GeminiAiModel } from "../../../../config/FirebaseConfig";
 import SlidersStyle, { type DesignStyle } from "@/components/custom/SlidersStyle";
 import OutlineSection from "@/components/custom/OutlineSection";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Loader2Icon } from "lucide-react";
-import { set } from "date-fns";
+import { UserDetailContext } from "../../../../context/UserDetailContext";
+import { useContext } from "react";
 
 const OUTLINE_PROMPT = `
 Generate a PowerPoint slide outline for the topic {userInput}". Create {noOfSliders} slides in total. Each slide should include a topic name and a 2-line descriptive outline that clearly explains what content the slide will cover.
@@ -88,7 +89,9 @@ function Outline() {
   const { projectId } = useParams();
   const [projectDetail, setProjectDetail] = useState<Project | null>(null);
   const [loading, setLoading] = useState(false);
+  const navigate=useNavigate();
   const [updateDbloading, setUpdateDbLoading] = useState(false);
+  const { userDetail, setUserDetail } = useContext(UserDetailContext);
   const [outline, setOutline] = useState<Outline[]>(DUMMY_OUTLINE); 
   const [selectedStyle,setSelectedStyle]=useState<DesignStyle>();
 
@@ -137,6 +140,12 @@ function Outline() {
   };
 
   const onGenerateSlider = async () => {
+
+    console.log(userDetail?.credits);
+    if(userDetail?.credits<=0){
+      return;
+    }
+
   // database update 
   setUpdateDbLoading(true);
   await setDoc(doc(firebaseDb, 'projects', projectId ?? ''), {
@@ -147,9 +156,15 @@ function Outline() {
   });
   setUpdateDbLoading(false);
 
-  //navigate to slider editor page
-  
+  await setDoc(doc(firebaseDb,"users",userDetail?.email ?? ''),{
+    credits:userDetail?.credits-1
+  },{
+    merge:true
+  })
 
+
+  //navigate to slider editor page
+  navigate(`/workspace/project/${projectId}/editor`);
 
 };
 
