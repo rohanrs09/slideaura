@@ -2,12 +2,16 @@ import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { firebaseDb, GeminiAiModel } from "../../../../config/FirebaseConfig";
-import SlidersStyle, { type DesignStyle } from "@/components/custom/SlidersStyle";
+import SlidersStyle, {
+  type DesignStyle,
+} from "@/components/custom/SlidersStyle";
 import OutlineSection from "@/components/custom/OutlineSection";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Loader2Icon } from "lucide-react";
 import { UserDetailContext } from "../../../../context/UserDetailContext";
 import { useContext } from "react";
+import CreditLimitDialog from "@/components/custom/CreditLimitDialog";
+import { useAuth } from "@clerk/clerk-react";
 
 const OUTLINE_PROMPT = `
 Generate a PowerPoint slide outline for the topic {userInput}". Create {noOfSliders} slides in total. Each slide should include a topic name and a 2-line descriptive outline that clearly explains what content the slide will cover.
@@ -70,7 +74,7 @@ export type Project = {
   noOfSlides: string;
   outline: Outline[];
   designStyle: DesignStyle;
-  slides:any[];
+  slides: any[];
 };
 
 export type Outline = {
@@ -79,21 +83,24 @@ export type Outline = {
   outline: string;
 };
 
-export type DesignStyle={
-  colors:any,
-  designGuide:string,
-  styleName:string
-}
+export type DesignStyle = {
+  colors: any;
+  designGuide: string;
+  styleName: string;
+};
 
 function Outline() {
   const { projectId } = useParams();
+  const { has } = useAuth();
+  const hasUnlimitedAccess = has && has({ plan: 'unlimited' });
   const [projectDetail, setProjectDetail] = useState<Project | null>(null);
   const [loading, setLoading] = useState(false);
-  const navigate=useNavigate();
+  const navigate = useNavigate();
   const [updateDbloading, setUpdateDbLoading] = useState(false);
   const { userDetail, setUserDetail } = useContext(UserDetailContext);
-  const [outline, setOutline] = useState<Outline[]>(DUMMY_OUTLINE); 
-  const [selectedStyle,setSelectedStyle]=useState<DesignStyle>();
+  const [outline, setOutline] = useState<Outline[]>(DUMMY_OUTLINE);
+  const [selectedStyle, setSelectedStyle] = useState<DesignStyle>();
+  const [openAlert, setOpenAlert] = useState(false);
 
   useEffect(() => {
     if (projectId) {
@@ -140,40 +147,57 @@ function Outline() {
   };
 
   const onGenerateSlider = async () => {
-
     console.log(userDetail?.credits);
-    if(userDetail?.credits<=0){
+    if (userDetail?.credits <= 0 && !hasUnlimitedAccess) {
+      //alert dialog
+      setOpenAlert(true);
       return;
     }
 
-  // database update 
-  setUpdateDbLoading(true);
-  await setDoc(doc(firebaseDb, 'projects', projectId ?? ''), {
-    designStyle: selectedStyle,
-    outline: outline
-  }, {
-    merge: true
-  });
-  setUpdateDbLoading(false);
+    // database update
+    setUpdateDbLoading(true);
+    await setDoc(
+      doc(firebaseDb, "projects", projectId ?? ""),
+      {
+        designStyle: selectedStyle,
+        outline: outline,
+      },
+      {
+        merge: true,
+      }
+    );
 
-  await setDoc(doc(firebaseDb,"users",userDetail?.email ?? ''),{
-    credits:userDetail?.credits-1
-  },{
-    merge:true
-  })
+    if(!hasUnlimitedAccess) { await setDoc(
+      doc(firebaseDb, "users", userDetail?.email ?? ""),
+      {
+        credits: userDetail?.credits - 1,
+      },
+      {
+        merge: true,
+      }
+    )
+  };
 
+    if(!hasUnlimitedAccess){
+      setUserDetail((prev: any) => ({
+        ...prev,
+        credits: userDetail?.credits - 1,
+      }))
+    };
 
-  //navigate to slider editor page
-  navigate(`/workspace/project/${projectId}/editor`);
+    setUpdateDbLoading(false);
 
-};
-
+    //navigate to slider editor page
+    navigate(`/workspace/project/${projectId}/editor`);
+  };
 
   return (
     <div className="flex justify-center">
       <div className="max-w-3xl w-full">
         <h2 className="font-bold text-2xl">Setting and Slider Outline </h2>
-        <SlidersStyle selectStyle={(value:DesignStyle)=>setSelectedStyle(value)} />
+        <SlidersStyle
+          selectStyle={(value: DesignStyle) => setSelectedStyle(value)}
+        />
         <OutlineSection
           loading={loading}
           outline={outline || []}
@@ -182,13 +206,16 @@ function Outline() {
           }
         />
       </div>
-      <Button size={'lg'} className='fixed bottom-6 transform left-1/2 -translate-x-1/2 ' 
-      onClick={onGenerateSlider}
-      disabled={updateDbloading || loading}
+      <Button
+        size={"lg"}
+        className="fixed bottom-6 transform left-1/2 -translate-x-1/2 "
+        onClick={onGenerateSlider}
+        disabled={updateDbloading || loading}
       >
-      {updateDbloading && <Loader2Icon className="animate-spin"/>}
-              Generate Slider <ArrowRight />
-          </Button>
+        {updateDbloading && <Loader2Icon className="animate-spin" />}
+        Generate Slider <ArrowRight />
+      </Button>
+      <CreditLimitDialog openAlert={openAlert} setOpenAlert={setOpenAlert} />
     </div>
   );
 }
