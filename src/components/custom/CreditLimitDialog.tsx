@@ -7,8 +7,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { Link } from "react-router-dom";
 type Props={

@@ -1,5 +1,3 @@
-import React, {useState } from "react";
-
 import {
   Dialog,
   DialogClose,
@@ -13,6 +11,7 @@ import {
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
+import { useState } from "react";
 
 function EditOutlineDialog({children,outlineData,onUpdate}: any) {
 

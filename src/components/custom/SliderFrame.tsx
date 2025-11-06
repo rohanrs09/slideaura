@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { doc, setDoc } from 'firebase/firestore';
 import { useParams } from 'react-router-dom';
 import { firebaseDb, GeminiAiModel} from "../../../config/FirebaseConfig";
@@ -270,6 +270,7 @@ by providing ?tr=fo-auto,<other transfromation> etc.
                 loading={loading}
                 handleAiChange={(value: string) => handleAiSectionChange(value)}
             />
+            
         </div>
     );
 }

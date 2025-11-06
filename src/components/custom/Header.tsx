@@ -27,6 +27,7 @@ function Header() {
   const {has}=useAuth();
   const hasUnlimitedAccess=has&&has({plan:'unlimited'});
   console.log("unlimited",hasUnlimitedAccess);
+  console.log(setUserDetail);
 
   return (
     <div className="flex items-center justify-between px-10 py-3  shadow">

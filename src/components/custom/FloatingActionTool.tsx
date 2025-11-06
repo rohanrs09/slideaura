@@ -1,6 +1,6 @@
-import { ArrowRight, Loader2Icon, Sparkle, Sparkles, X } from 'lucide-react';
-import React, { useState } from 'react'
+import { ArrowRight, Loader2Icon,  Sparkles, X } from 'lucide-react';
 import { Button } from '../ui/button';
+import { useState } from 'react';
 
 type Props ={
     position:{x:number,y:number} | null,
