@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { doc, setDoc } from "firebase/firestore";
-import { useParams } from "react-router-dom";
-import { firebaseDb, GeminiAiModel } from "../../../config/FirebaseConfig";
+// import { doc, setDoc } from "firebase/firestore";
+// import { useParams } from "react-router-dom";
+import {  GeminiAiModel } from "../../../config/FirebaseConfig";
 import FloatingActionTool from "./FloatingActionTool";
 
 const HTML_DEFAULT = `<!DOCTYPE html>
@@ -71,7 +71,7 @@ type props = {
 };
 
 function SliderFrame({ slide, colors, setUpdateSlider }: props) {
-  const { projectId } = useParams();
+//   const { projectId } = useParams();
   const FINAL_CODE = HTML_DEFAULT.replace(
     "{colorCodes}",
     JSON.stringify(colors)
@@ -243,15 +243,15 @@ by providing ?tr=fo-auto,<other transfromation> etc.
   };
 
   // ✅ Save slides to Firebase
-  const SaveAllSlides = async (updatedSlides: any[]) => {
-    if (!projectId) return;
-    await setDoc(
-      doc(firebaseDb, "projects", projectId),
-      { slides: updatedSlides },
-      { merge: true }
-    );
-    console.log("✅ Slides updated to Firestore");
-  };
+//   const SaveAllSlides = async (updatedSlides: any[]) => {
+//     if (!projectId) return;
+//     await setDoc(
+//       doc(firebaseDb, "projects", projectId),
+//       { slides: updatedSlides },
+//       { merge: true }
+//     );
+//     console.log("✅ Slides updated to Firestore");
+//   };
 
   return (
     <div className="mb-5">
@@ -267,12 +267,12 @@ by providing ?tr=fo-auto,<other transfromation> etc.
         loading={loading}
         handleAiChange={(value: string) => handleAiSectionChange(value)}
       />
-      <button
+      {/* <button
         onClick={() => SaveAllSlides([slide])}
         className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
       >
         Save All Slides
-      </button>
+      </button> */}
     </div>
   );
 }
