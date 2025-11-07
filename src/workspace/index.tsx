@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useUser } from "@clerk/clerk-react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { firebaseDb } from "../../config/FireBaseConfig";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useEffect } from "react";
 import { useContext } from "react";
@@ -9,6 +8,7 @@ import { UserDetailContext } from "../../context/UserDetailContext";
 import Header from "@/components/custom/Header";
 import PromptBox from "@/components/custom/PromptBox";
 import MyProjects from "@/components/custom/MyProjects";
+import { firebaseDb } from "../../config/FirebaseConfig";
 
 function WorkSpace() {
   const { user } = useUser();

@@ -246,15 +246,15 @@ by providing ?tr=fo-auto,<other transfromation> etc.
     }
 
     // ✅ Save slides to Firebase
-    const SaveAllSlides = async (updatedSlides: any[]) => {
-        if (!projectId) return;
-        await setDoc(
-            doc(firebaseDb, "projects", projectId),
-            { slides: updatedSlides },
-            { merge: true }
-        );
-        console.log("✅ Slides updated to Firestore");
-    };
+    // const SaveAllSlides = async (updatedSlides: any[]) => {
+    //     if (!projectId) return;
+    //     await setDoc(
+    //         doc(firebaseDb, "projects", projectId),
+    //         { slides: updatedSlides },
+    //         { merge: true }
+    //     );
+    //     console.log("✅ Slides updated to Firestore");
+    // };
 
 
     return (
