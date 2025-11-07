@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
-import { doc, setDoc } from 'firebase/firestore';
-import { useParams } from 'react-router-dom';
-import { firebaseDb, GeminiAiModel} from "../../../config/FirebaseConfig";
-import FloatingActionTool from './FloatingActionTool';
+import { useEffect, useRef, useState } from "react";
+import { doc, setDoc } from "firebase/firestore";
+import { useParams } from "react-router-dom";
+import { firebaseDb, GeminiAiModel } from "../../../config/FirebaseConfig";
+import FloatingActionTool from "./FloatingActionTool";
 
 const HTML_DEFAULT = `<!DOCTYPE html>
 <html lang="en">
@@ -62,148 +62,146 @@ const HTML_DEFAULT = `<!DOCTYPE html>
 {code}
 
 </html>
-`
-
-
+`;
 
 type props = {
-    slide: { code: string },
-    colors: any,
-    setUpdateSlider: any
-}
+  slide: { code: string };
+  colors: any;
+  setUpdateSlider: any;
+};
 
 function SliderFrame({ slide, colors, setUpdateSlider }: props) {
+  const { projectId } = useParams();
+  const FINAL_CODE = HTML_DEFAULT.replace(
+    "{colorCodes}",
+    JSON.stringify(colors)
+  ).replace("{code}", slide?.code);
 
-    const { projectId } = useParams();
-    const FINAL_CODE = HTML_DEFAULT
-        .replace("{colorCodes}", JSON.stringify(colors))
-        .replace("{code}", slide?.code);
+  const iframeRef = useRef<any>(null);
+  const [loading, setLoading] = useState(false);
+  const selectedElRef = useRef<HTMLElement | null>(null);
+  const [cardPosition, setCardPosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  useEffect(() => {
+    if (!iframeRef.current) return;
+    const iframe = iframeRef.current;
+    const doc = iframeRef.current.contentDocument;
+    if (!doc) return;
 
-    const iframeRef = useRef<any>(null);
-    const [loading, setLoading] = useState(false);
-    const selectedElRef = useRef<HTMLElement | null>(null);
-    const [cardPosition, setCardPosition] = useState<{ x: number, y: number } | null>(null)
-    useEffect(() => {
-        if (!iframeRef.current) return;
-        const iframe = iframeRef.current;
-        const doc = iframeRef.current.contentDocument;
-        if (!doc) return;
+    // Write the HTML inside the iframe
+    doc.open();
+    doc.write(FINAL_CODE);
+    doc.close();
 
-        // Write the HTML inside the iframe
-        doc.open();
-        doc.write(FINAL_CODE);
-        doc.close();
+    // Allow iframe to capture keyboard events
+    //doc.body.setAttribute("tabindex", "0");
 
-        // Allow iframe to capture keyboard events
-        //doc.body.setAttribute("tabindex", "0");
+    let hoverEl: HTMLElement | null = null;
+    let selectedEl: HTMLElement | null = null;
 
-        let hoverEl: HTMLElement | null = null;
-        let selectedEl: HTMLElement | null = null;
+    const handleMouseOver = (e: MouseEvent) => {
+      if (selectedEl) return;
+      const target = e.target as HTMLElement;
+      if (hoverEl && hoverEl !== target) hoverEl.style.outline = "";
+      hoverEl = target;
+      hoverEl.style.outline = "2px dotted blue";
+    };
 
-        const handleMouseOver = (e: MouseEvent) => {
-            if (selectedEl) return;
-            const target = e.target as HTMLElement;
-            if (hoverEl && hoverEl !== target) hoverEl.style.outline = "";
-            hoverEl = target;
-            hoverEl.style.outline = "2px dotted blue";
-        };
+    const handleMouseOut = () => {
+      if (selectedEl) return;
+      if (hoverEl) {
+        hoverEl.style.outline = "";
+        hoverEl = null;
+      }
+    };
 
-        const handleMouseOut = () => {
-            if (selectedEl) return;
-            if (hoverEl) {
-                hoverEl.style.outline = "";
-                hoverEl = null;
-            }
-        };
+    const handleClick = (e: MouseEvent) => {
+      e.stopPropagation(); // ✅ allow editing text inside
+      const target = e.target as HTMLElement;
 
-        const handleClick = (e: MouseEvent) => {
-            e.stopPropagation(); // ✅ allow editing text inside
-            const target = e.target as HTMLElement;
+      if (selectedEl && selectedEl !== target) {
+        selectedEl.style.outline = "";
+        selectedEl.removeAttribute("contenteditable");
+      }
 
-            if (selectedEl && selectedEl !== target) {
-                selectedEl.style.outline = '';
-                selectedEl.removeAttribute('contenteditable')
-            }
+      selectedEl = target;
 
-            selectedEl = target;
+      selectedElRef.current = target;
 
-            selectedElRef.current = target;
+      if (selectedEl && selectedEl !== target) {
+        selectedEl.style.outline = "";
+        selectedEl.removeAttribute("contenteditable");
+      }
 
+      selectedEl = target;
+      selectedEl.style.outline = "2px solid blue";
+      selectedEl.setAttribute("contenteditable", "true");
+      selectedEl.focus();
 
-            if (selectedEl && selectedEl !== target) {
-                selectedEl.style.outline = "";
-                selectedEl.removeAttribute("contenteditable");
-            }
+      console.log("Selected element:", selectedEl);
+      // ✅ Attach blur event dynamically
+      // selectedEl?.addEventListener("blur", handleBlur);
 
-            selectedEl = target;
-            selectedEl.style.outline = "2px solid blue";
-            selectedEl.setAttribute("contenteditable", "true");
-            selectedEl.focus();
+      // ✅ Calculate position relative to iframe container
+      const rect = target.getBoundingClientRect();
+      const iframeRect = iframe.getBoundingClientRect();
 
-            console.log("Selected element:", selectedEl);
-            // ✅ Attach blur event dynamically
-            // selectedEl?.addEventListener("blur", handleBlur);
+      setCardPosition({
+        x: iframeRect.left + rect.left + rect.width / 2,
+        y: iframeRect.top + rect.bottom,
+      });
+    };
 
-            // ✅ Calculate position relative to iframe container
-            const rect = target.getBoundingClientRect();
-            const iframeRect = iframe.getBoundingClientRect();
+    const handleBlur = () => {
+      if (selectedEl) {
+        console.log("Final edited element:", selectedEl.outerHTML);
+        const updatedSliderCode = iframe.contentDocument?.body?.innerHTML;
+        console.log(updatedSliderCode);
+        setUpdateSlider(updatedSliderCode);
+      }
+    };
 
-            setCardPosition({
-                x: iframeRect.left + rect.left + rect.width / 2,
-                y: iframeRect.top + rect.bottom
-            })
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && selectedEl) {
+        selectedEl.style.outline = "";
+        selectedEl.removeAttribute("contenteditable");
+        selectedEl.removeEventListener("blur", handleBlur);
+        selectedEl = null;
+      }
+    };
 
-        };
+    // ✅ Wait for DOM content to be ready
+    doc.addEventListener("DOMContentLoaded", () => {
+      doc.body?.addEventListener("mouseover", handleMouseOver);
+      doc.body?.addEventListener("mouseout", handleMouseOut);
+      doc.body?.addEventListener("click", handleClick);
+      doc.body?.addEventListener("keydown", handleKeyDown);
+    });
 
-        const handleBlur = () => {
-            if (selectedEl) {
-                console.log("Final edited element:", selectedEl.outerHTML);
-                const updatedSliderCode = iframe.contentDocument?.body?.innerHTML
-                console.log(updatedSliderCode);
-                setUpdateSlider(updatedSliderCode)
-            }
-        };
+    // ✅ Cleanup listeners on unmount
+    return () => {
+      doc.body?.removeEventListener("mouseover", handleMouseOver);
+      doc.body?.removeEventListener("mouseout", handleMouseOut);
+      doc.body?.removeEventListener("click", handleClick);
+      doc.body?.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [slide?.code]);
 
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "Escape" && selectedEl) {
-                selectedEl.style.outline = "";
-                selectedEl.removeAttribute("contenteditable");
-                selectedEl.removeEventListener("blur", handleBlur);
-                selectedEl = null;
+  const handleAiSectionChange = async (userAiPrompt: string) => {
+    setLoading(true);
+    const selectedEl = selectedElRef.current;
+    const iframe = iframeRef.current;
 
-            }
-        };
+    if (!selectedEl || !iframe) return;
 
-        // ✅ Wait for DOM content to be ready
-        doc.addEventListener("DOMContentLoaded", () => {
-            doc.body?.addEventListener("mouseover", handleMouseOver);
-            doc.body?.addEventListener("mouseout", handleMouseOut);
-            doc.body?.addEventListener("click", handleClick);
-            doc.body?.addEventListener("keydown", handleKeyDown);
-        });
+    // Get the current HTML of the selected element
+    const oldHTML = selectedEl.outerHTML;
 
-        // ✅ Cleanup listeners on unmount
-        return () => {
-            doc.body?.removeEventListener("mouseover", handleMouseOver);
-            doc.body?.removeEventListener("mouseout", handleMouseOut);
-            doc.body?.removeEventListener("click", handleClick);
-            doc.body?.removeEventListener("keydown", handleKeyDown);
-        };
-    }, [slide?.code]);
+    // Build AI prompt
 
-    const handleAiSectionChange = async (userAiPrompt: string) => {
-        setLoading(true);
-        const selectedEl = selectedElRef.current;
-        const iframe = iframeRef.current;
-
-        if (!selectedEl || !iframe) return;
-
-        // Get the current HTML of the selected element
-        const oldHTML = selectedEl.outerHTML;
-
-        // Build AI prompt
-
-        const prompt = `
+    const prompt = `
   Regenerate or rewrite the following HTML code based on this user instruction.
   If user asked to change the image/regenerate the image then make sure to use
   ImageKit:
@@ -216,63 +214,67 @@ by providing ?tr=fo-auto,<other transfromation> etc.
   ${oldHTML}
   `;
 
+    try {
+      const result = await GeminiAiModel.generateContent(prompt);
+      const newHTML = (await result.response.text()).trim();
 
-        try {
-            const result = await GeminiAiModel.generateContent(prompt);
-            const newHTML = (await result.response.text()).trim();
+      // ✅ Replace only the selected element
+      const tempDiv = iframe.contentDocument?.createElement("div");
+      if (tempDiv) {
+        tempDiv.innerHTML = newHTML;
+        const newNode = tempDiv.firstElementChild;
 
-            // ✅ Replace only the selected element
-            const tempDiv = iframe.contentDocument?.createElement("div");
-            if (tempDiv) {
-                tempDiv.innerHTML = newHTML;
-                const newNode = tempDiv.firstElementChild;
+        if (newNode && selectedEl.parentNode) {
+          selectedEl.parentNode.replaceChild(newNode, selectedEl);
+          selectedElRef.current = newNode as HTMLElement;
+          console.log("✅ Element replaced successfully");
 
-                if (newNode && selectedEl.parentNode) {
-                    selectedEl.parentNode.replaceChild(newNode, selectedEl);
-                    selectedElRef.current = newNode as HTMLElement;
-                    console.log("✅ Element replaced successfully");
-
-                    const updatedSliderCode = iframe.contentDocument?.body?.innerHTML || newHTML
-                    console.log(updatedSliderCode);
-                    setUpdateSlider(updatedSliderCode)
-                }
-            }
-        } catch (err) {
-            console.error("AI generation failed:", err);
+          const updatedSliderCode =
+            iframe.contentDocument?.body?.innerHTML || newHTML;
+          console.log(updatedSliderCode);
+          setUpdateSlider(updatedSliderCode);
         }
-
-        setLoading(false);
-
+      }
+    } catch (err) {
+      console.error("AI generation failed:", err);
     }
 
-    // ✅ Save slides to Firebase
-    // const SaveAllSlides = async (updatedSlides: any[]) => {
-    //     if (!projectId) return;
-    //     await setDoc(
-    //         doc(firebaseDb, "projects", projectId),
-    //         { slides: updatedSlides },
-    //         { merge: true }
-    //     );
-    //     console.log("✅ Slides updated to Firestore");
-    // };
+    setLoading(false);
+  };
 
-
-    return (
-        <div className='mb-5'>
-            <iframe
-                ref={iframeRef}
-                className="w-[800px] h-[500px] border-0 rounded-2xl"
-                sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups" // ✅ full sandbox permissions
-            />
-
-            <FloatingActionTool position={cardPosition}
-                onClose={() => setCardPosition(null)}
-                loading={loading}
-                handleAiChange={(value: string) => handleAiSectionChange(value)}
-            />
-    
-        </div>
+  // ✅ Save slides to Firebase
+  const SaveAllSlides = async (updatedSlides: any[]) => {
+    if (!projectId) return;
+    await setDoc(
+      doc(firebaseDb, "projects", projectId),
+      { slides: updatedSlides },
+      { merge: true }
     );
+    console.log("✅ Slides updated to Firestore");
+  };
+
+  return (
+    <div className="mb-5">
+      <iframe
+        ref={iframeRef}
+        className="w-[800px] h-[500px] border-0 rounded-2xl"
+        sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups" // ✅ full sandbox permissions
+      />
+
+      <FloatingActionTool
+        position={cardPosition}
+        onClose={() => setCardPosition(null)}
+        loading={loading}
+        handleAiChange={(value: string) => handleAiSectionChange(value)}
+      />
+      <button
+        onClick={() => SaveAllSlides([slide])}
+        className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+      >
+        Save All Slides
+      </button>
+    </div>
+  );
 }
 
-export default SliderFrame
+export default SliderFrame;
