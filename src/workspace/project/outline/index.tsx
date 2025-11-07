@@ -1,10 +1,8 @@
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
+import { doc, getDoc, setDoc} from "firebase/firestore";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { firebaseDb, GeminiAiModel } from "../../../../config/FirebaseConfig";
-import SlidersStyle, {
-  type DesignStyle,
-} from "@/components/custom/SlidersStyle";
+import SlidersStyle from "@/components/custom/SlidersStyle";
 import OutlineSection from "@/components/custom/OutlineSection";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Loader2Icon } from "lucide-react";
@@ -93,7 +91,7 @@ function Outline() {
   const { projectId } = useParams();
   const { has } = useAuth();
   const hasUnlimitedAccess = has && has({ plan: 'unlimited' });
-  const [projectDetail, setProjectDetail] = useState<Project | null>(null);
+  const [, setProjectDetail] = useState<Project | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [updateDbloading, setUpdateDbLoading] = useState(false);

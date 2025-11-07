@@ -279,7 +279,7 @@ function Editor() {
           {/* Outlines  */}
           <OutlineSection
             outline={projectDetail?.outline ?? []}
-            handleUpdateOutline={() => console.log()}
+            handleUpdateOutline={()=>console.log()}
             loading={loading}
             editable={false}
           />

@@ -270,7 +270,7 @@ by providing ?tr=fo-auto,<other transfromation> etc.
                 loading={loading}
                 handleAiChange={(value: string) => handleAiSectionChange(value)}
             />
-            
+    
         </div>
     );
 }

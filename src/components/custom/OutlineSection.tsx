@@ -8,6 +8,7 @@ type Props={
     loading:boolean;
     outline:Outline[];
     handleUpdateOutline :any;
+    editable?: boolean; 
 }
 
 function OutlineSection({loading,outline,handleUpdateOutline}:Props) {

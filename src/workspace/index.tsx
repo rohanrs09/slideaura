@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useUser } from "@clerk/clerk-react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { firebaseDb } from "../../config/FirebaseConfig";
+import { firebaseDb } from "../../config/FireBaseConfig";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useEffect } from "react";
 import { useContext } from "react";

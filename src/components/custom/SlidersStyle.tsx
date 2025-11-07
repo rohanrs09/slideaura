@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import ProfessionalSlider from "../../assets/professional.jpg";
 import MinWhiteSlider from "../../assets/Minimalist-White.jpg";
 import ModernGradientSlider from "../../assets/modern-gradient.jpg";
@@ -123,7 +123,7 @@ type Props = {
   selectStyle: any;
 };
 
-export type DesignStyle = {
+export type DesignStyleType = {
   styleName: string;
   colors: any;
   designGuide: string;

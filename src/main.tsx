@@ -6,10 +6,9 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import WorkSpace from "./workspace/index.tsx";
 
 import { ClerkProvider } from "@clerk/clerk-react";
-import { UserDetailContext } from "../context/UserDetailContext.tsx";
+import { UserDetailContext } from "../context/UserDetailContext";
 import Outline from "./workspace/project/outline/index.tsx";
 import Editor from "./workspace/project/editor/index.tsx";
-import Pricing from "./workspace/pricing/index.tsx";
 
 const router = createBrowserRouter([
   { path: "/", element: <App /> },
@@ -17,9 +16,7 @@ const router = createBrowserRouter([
     path: "/workspace",
     element: <WorkSpace />,
     children: [{ path: "project/:projectId/outline", element: <Outline /> },
-      { path: "project/:projectId/editor", element: <Editor />},
-      {path:"pricing" , element:<Pricing />}
-    ]
+      { path: "project/:projectId/editor", element: <Editor />}]
   },
 ]);
 
