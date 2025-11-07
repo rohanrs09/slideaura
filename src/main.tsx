@@ -4,40 +4,43 @@ import "./index.css";
 import App from "./App.tsx";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import WorkSpace from "./workspace/index.tsx";
-
 import { ClerkProvider } from "@clerk/clerk-react";
 import { UserDetailContext } from "../context/UserDetailContext";
 import Outline from "./workspace/project/outline/index.tsx";
 import Editor from "./workspace/project/editor/index.tsx";
+import WorkspaceErrorPage from "./workspace/ErrorPage.tsx";
+import Pricing from "./workspace/pricing/index.tsx";
 
 const router = createBrowserRouter([
   { path: "/", element: <App /> },
   {
     path: "/workspace",
     element: <WorkSpace />,
-    children: [{ path: "project/:projectId/outline", element: <Outline /> },
-      { path: "project/:projectId/editor", element: <Editor />}]
+    errorElement: <WorkspaceErrorPage />,
+    children: [
+      { path: "pricing", element: <Pricing /> },
+      { path: "project/:projectId/outline", element: <Outline /> },
+      { path: "project/:projectId/editor", element: <Editor /> },
+    ],
+  },
+  {
+    path: "*",
+    element: <WorkspaceErrorPage />, // ✅ catch-all for any invalid route
   },
 ]);
 
-// Import your Publishable Key
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
-if (!PUBLISHABLE_KEY) {
-  throw new Error("Missing Publishable Key");
-}
+if (!PUBLISHABLE_KEY) throw new Error("Missing Publishable Key");
 
 function Root() {
-
-  const [userDetail,setUserDetail]=useState();
-
+  const [userDetail, setUserDetail] = useState();
   return (
     <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-      <UserDetailContext.Provider value={{userDetail,setUserDetail}}>
-      <RouterProvider router={router} />
+      <UserDetailContext.Provider value={{ userDetail, setUserDetail }}>
+        <RouterProvider router={router} />
       </UserDetailContext.Provider>
     </ClerkProvider>
-  ); 
+  );
 }
 
 createRoot(document.getElementById("root")!).render(
