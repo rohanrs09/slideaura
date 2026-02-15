@@ -1,10 +1,14 @@
 import { PricingTable } from '@clerk/clerk-react'
 import { motion } from "framer-motion";
 import { Sparkles } from 'lucide-react'
+import Header from "./Header";
+import Footer from "./Footer";
 
 function Pricing() {
 return (
-    <div className="min-h-[calc(100vh-60px)] flex flex-col items-center justify-start px-6 py-6 pt-16 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0a0a0a]">
+      <Header />
+      <div className="min-h-[calc(100vh-60px)] flex flex-col items-center justify-start px-6 py-6 pt-16 relative overflow-hidden">
       <div className="absolute top-0 left-1/3 w-[500px] h-[500px] bg-gradient-radial from-[#A855F7]/10 to-transparent blur-3xl" />
 
       <motion.div
@@ -25,9 +29,10 @@ return (
           <PricingTable />
         </div>
       </motion.div>
+      </div>
+      <Footer />
     </div>
   );
-
 }
 
-export default Pricing
+export default Pricing;

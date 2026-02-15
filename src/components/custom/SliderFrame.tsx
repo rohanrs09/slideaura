@@ -254,12 +254,15 @@ by providing ?tr=fo-auto,<other transfromation> etc.
 //   };
 
   return (
-    <div className="mb-5">
-      <iframe
-        ref={iframeRef}
-        className="w-[800px] h-[500px] border-0 rounded-2xl"
-        sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups" // ✅ full sandbox permissions
-      />
+    <div className="mb-6 group/slide">
+      <div className="relative rounded-xl overflow-hidden border border-[#A855F7]/20 hover:border-[#EC4899]/40 transition-all duration-300 bg-[#150828]">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#A855F7]/30 to-transparent" />
+        <iframe
+          ref={iframeRef}
+          className="w-[800px] h-[500px] border-0"
+          sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups" // ✅ full sandbox permissions
+        />
+      </div>
 
       <FloatingActionTool
         position={cardPosition}

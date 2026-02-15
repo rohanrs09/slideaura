@@ -107,33 +107,74 @@ function Outline() {
   }, [projectId]);
 
   const GetProjectDetail = async () => {
-    const docRef = doc(firebaseDb, "projects", projectId ?? "");
-    const docSnap: any = await getDoc(docRef);
+    try {
+      const docRef = doc(firebaseDb, "projects", projectId ?? "");
+      const docSnap: any = await getDoc(docRef);
 
-    if (!docSnap.exists()) {
-      return;
-    }
-    console.log("project detail", docSnap.data());
-    setProjectDetail(docSnap.data());
-    if (!docSnap.data().outline) {
-      GenerateSlidersOutline(docSnap.data());
+      if (!docSnap.exists()) {
+        console.error("❌ Project not found");
+        return;
+      }
+      
+      const projectData = docSnap.data();
+      console.log("📦 Project detail:", projectData);
+      setProjectDetail(projectData);
+      
+      // Load existing outline if available
+      if (projectData.outline && projectData.outline.length > 0) {
+        console.log("✅ Loading existing outline");
+        setOutline(projectData.outline);
+      } else {
+        console.log("🔄 Generating new outline");
+        GenerateSlidersOutline(projectData);
+      }
+      
+      // Load existing design style if available
+      if (projectData.designStyle) {
+        console.log("✅ Loading existing design style");
+        setSelectedStyle(projectData.designStyle);
+      }
+    } catch (error) {
+      console.error("❌ Error loading project:", error);
     }
   };
 
   const GenerateSlidersOutline = async (projectData: Project) => {
     setLoading(true);
-    const prompt = OUTLINE_PROMPT.replace(
-      "{userInput}",
-      projectData?.userInputPrompt
-    ).replace("{noOfSliders}", projectData?.noOfSlides);
-    const result = await GeminiAiModel.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
-    console.log(text);
-    const rawJson = text.replace("```json", "").replace("```", "");
-    const JSONData = JSON.parse(rawJson);
-    setOutline(JSONData);
-    setLoading(false);
+    try {
+      const prompt = OUTLINE_PROMPT.replace(
+        "{userInput}",
+        projectData?.userInputPrompt
+      ).replace("{noOfSlides}", projectData?.noOfSlides);
+      const result = await GeminiAiModel.generateContent(prompt);
+      const response = result.response;
+      const text = response.text();
+      console.log(text);
+      
+      // Clean and parse JSON
+      const rawJson = text.replace("```json", "").replace("```", "").trim();
+      
+      if (!rawJson) {
+        throw new Error("Empty response from AI");
+      }
+      
+      const JSONData = JSON.parse(rawJson);
+      
+      // Validate the parsed data
+      if (!Array.isArray(JSONData) || JSONData.length === 0) {
+        throw new Error("Invalid outline format");
+      }
+      
+      setOutline(JSONData);
+    } catch (err) {
+      console.error("❌ Error generating outline:", err);
+      
+      // Fallback to dummy outline if generation fails
+      console.log("🔄 Using fallback outline");
+      setOutline(DUMMY_OUTLINE);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleUpdateOutline = (index: string, value: Outline) => {
@@ -146,6 +187,13 @@ function Outline() {
 
   const onGenerateSlider = async () => {
     console.log(userDetail?.credits);
+    
+    // Check if style is selected
+    if (!selectedStyle) {
+      alert("Please select a slide style before generating slides");
+      return;
+    }
+    
     if (userDetail?.credits <= 0 && !hasUnlimitedAccess) {
       //alert dialog
       setOpenAlert(true);
@@ -154,45 +202,56 @@ function Outline() {
 
     // database update
     setUpdateDbLoading(true);
-    await setDoc(
-      doc(firebaseDb, "projects", projectId ?? ""),
-      {
-        designStyle: selectedStyle,
-        outline: outline,
-      },
-      {
-        merge: true,
+    console.log("💾 Saving outline and design style...");
+    
+    try {
+      await setDoc(
+        doc(firebaseDb, "projects", projectId ?? ""),
+        {
+          designStyle: selectedStyle,
+          outline: outline,
+        },
+        {
+          merge: true,
+        }
+      );
+      console.log("✅ Saved successfully");
+
+      // Update user credits if not unlimited
+      if(!hasUnlimitedAccess) {
+        await setDoc(
+          doc(firebaseDb, "users", userDetail?.email ?? ""),
+          {
+            credits: userDetail?.credits - 1,
+          },
+          {
+            merge: true,
+          }
+        );
+        
+        setUserDetail((prev: any) => ({
+          ...prev,
+          credits: userDetail?.credits - 1,
+        }));
       }
-    );
 
-    if(!hasUnlimitedAccess) { await setDoc(
-      doc(firebaseDb, "users", userDetail?.email ?? ""),
-      {
-        credits: userDetail?.credits - 1,
-      },
-      {
-        merge: true,
-      }
-    )
-  };
-
-    if(!hasUnlimitedAccess){
-      setUserDetail((prev: any) => ({
-        ...prev,
-        credits: userDetail?.credits - 1,
-      }))
-    };
-
-    setUpdateDbLoading(false);
-
-    //navigate to slider editor page
-    navigate(`/workspace/project/${projectId}/editor`);
+      //navigate to slider editor page
+      navigate(`/workspace/project/${projectId}/editor`);
+    } catch (error) {
+      console.error("❌ Error saving project:", error);
+      alert("Failed to save project. Please try again.");
+    } finally {
+      setUpdateDbLoading(false);
+    }
   };
 
   return (
-    <div className="flex justify-center">
-      <div className="max-w-3xl w-full">
-        <h2 className="font-bold text-2xl">Setting and Slider Outline </h2>
+    <div className="flex justify-center px-6 py-8 relative bg-[#0A0118]">
+      <div className="max-w-3xl w-full relative z-10">
+        <div className="mb-6">
+          <h2 className="font-heading font-bold text-2xl text-[#F5F3FF]">Settings & Outline</h2>
+          <p className="text-sm text-[#C4B5FD] mt-1">Choose a style and review your slide outline</p>
+        </div>
         <SlidersStyle
           selectStyle={(value: DesignStyle) => setSelectedStyle(value)}
         />
@@ -204,15 +263,23 @@ function Outline() {
           }
         />
       </div>
-      <Button
-        size={"lg"}
-        className="fixed bottom-6 transform left-1/2 -translate-x-1/2 "
-        onClick={onGenerateSlider}
-        disabled={updateDbloading || loading}
-      >
-        {updateDbloading && <Loader2Icon className="animate-spin" />}
-        Generate Slider <ArrowRight />
-      </Button>
+
+      {/* Fixed bottom action bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40">
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0A0118] via-[#0A0118]/95 to-transparent pointer-events-none" />
+        <div className="relative flex justify-center pb-6 pt-12">
+          <Button
+            variant="cta"
+            size={"lg"}
+            className="gap-2 px-8 shadow-[0_0_32px_-8px_rgba(168,85,247,0.5)]"
+            onClick={onGenerateSlider}
+            disabled={updateDbloading || loading || !selectedStyle}
+          >
+            {updateDbloading && <Loader2Icon className="animate-spin h-4 w-4" />}
+            {!selectedStyle ? "Select a Style First" : "Generate Slides"} <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
       <CreditLimitDialog openAlert={openAlert} setOpenAlert={setOpenAlert} />
     </div>
   );

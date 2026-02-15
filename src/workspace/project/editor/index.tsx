@@ -4,15 +4,15 @@ import {
   GeminiAiLiveModel,
 } from "../../../../config/FirebaseConfig";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import type { Project } from "../outline";
 import SliderFrame from "@/components/custom/SliderFrame";
 import * as htmlToImage from "html-to-image";
 import PptxGenJS from "pptxgenjs";
-import { FileDown, InfoIcon, Loader2 } from "lucide-react";
+import { Loader2, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useEffect, useRef, useState } from "react";
+
 const SLIDER_PROMPT = `Generate HTML (TailwindCSS + Flowbite UI + Lucide Icons) 
 code for a 16:9 ppt slider in Modern Dark style.
 {DESIGN_STYLE}. No responsive design; use a fixed 16:9 layout for slides.
@@ -95,10 +95,11 @@ Just provide body content for 1 slider. Make sure all content, including images,
 
 function Editor() {
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const [projectDetail, setProjectDetail] = useState<Project>();
   const [loading, setLoading] = useState(false);
-  const [sliders, setSliders] = useState<any>([]);
-  const [isSlidesGenerated, setIsSlidesGenerated] = useState<any>();
+  const [sliders, setSliders] = useState<any[]>([]);
+  const [isSlidesGenerated, setIsSlidesGenerated] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [downloadLoading, setDownloadLoading] = useState(false);
 
@@ -110,21 +111,39 @@ function Editor() {
 
   const GetProjectDetail = async () => {
     setLoading(true);
-    const docRef = doc(firebaseDb, "projects", projectId ?? "");
-    const docSnap: any = await getDoc(docRef);
-    if (!docSnap.exists()) {
-      return;
+    try {
+      const docRef = doc(firebaseDb, "projects", projectId ?? "");
+      const docSnap: any = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        console.error("❌ Project not found");
+        setLoading(false);
+        return;
+      }
+      
+      const projectData = docSnap.data();
+      console.log("📦 Project data:", JSON.stringify(projectData));
+      
+      // Check if required data exists
+      if (!projectData.outline || !projectData.designStyle) {
+        console.error("❌ Missing outline or designStyle. Redirecting to outline page...");
+        navigate(`/workspace/project/${projectId}/outline`);
+        return;
+      }
+      
+      setProjectDetail(projectData);
+    } catch (error) {
+      console.error("❌ Error loading project:", error);
+    } finally {
+      setLoading(false);
     }
-    console.log(JSON.stringify(docSnap.data()));
-    setProjectDetail(docSnap.data());
-    setLoading(false);
   };
 
   useEffect(() => {
     if (projectDetail && !projectDetail?.slides?.length) {
       GenerateSlides();
     } else {
-      setSliders(projectDetail?.slides);
+      setSliders(projectDetail?.slides || []);
     }
   }, [projectDetail]);
 
@@ -138,7 +157,7 @@ function Editor() {
 
     for (
       let index = 0;
-      index < projectDetail.outline.length && index < 5;
+      index < projectDetail.outline.length;
       index++
     ) {
       const metaData = projectDetail.outline[index];
@@ -197,8 +216,30 @@ function Editor() {
       }
 
       session.close();
+      
+      // Validate that we got content
+      if (!text || text.trim().length < 50) {
+        throw new Error("Generated content too short or empty");
+      }
+      
     } catch (err) {
       console.error("❌ Error generating slide", index + 1, err);
+      
+      // Fallback content for failed slide
+      const fallbackContent = `
+        <div class="w-[800px] h-[500px] relative bg-[#0D0D0D] text-white overflow-hidden flex items-center justify-center">
+          <div class="text-center p-8">
+            <h2 class="text-3xl font-bold text-[#8b5cf6] mb-4">${projectDetail?.outline[index]?.slidePoint || 'Slide ' + (index + 1)}</h2>
+            <p class="text-gray-300">${projectDetail?.outline[index]?.outline || 'Content generation failed. Please try regenerating this slide.'}</p>
+          </div>
+        </div>
+      `;
+      
+      setSliders((prev: any[]) => {
+        const updated = prev ? [...prev] : [];
+        updated[index] = { code: fallbackContent };
+        return updated;
+      });
     }
   };
 
@@ -207,15 +248,26 @@ function Editor() {
   }, [isSlidesGenerated]);
 
   const SaveAllSlides = async () => {
-    await setDoc(
-      doc(firebaseDb, "projects", projectId ?? ""),
-      {
-        slides: sliders,
-      },
-      {
-        merge: true,
-      }
-    );
+    if (!sliders || sliders.length === 0) {
+      console.log("⚠️ No slides to save");
+      return;
+    }
+    
+    try {
+      console.log("💾 Saving", sliders.length, "slides to Firebase...");
+      await setDoc(
+        doc(firebaseDb, "projects", projectId ?? ""),
+        {
+          slides: sliders,
+        },
+        {
+          merge: true,
+        }
+      );
+      console.log("✅ Slides saved successfully");
+    } catch (error) {
+      console.error("❌ Error saving slides:", error);
+    }
   };
 
   const updateSliderCode = (updateSlideCode: string, index: number) => {
@@ -264,54 +316,80 @@ function Editor() {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-center mt-4">
-        <Alert variant="destructive" className="max-w-lg">
-          <InfoIcon />
-          <AlertTitle>Heads up!</AlertTitle>
-          <AlertDescription>
-            This is Application Demo, Maximum 4 Slider can generator for demo
-          </AlertDescription>
-        </Alert>
-      </div>
-      <div className="grid grid-cols-5 p-10 gap-10 ">
-        <div className="col-span-2 h-[90vh] overflow-auto ">
-          {/* Outlines  */}
-          <OutlineSection
-            outline={projectDetail?.outline ?? []}
-            handleUpdateOutline={()=>console.log()}
-            loading={loading}
-            editable={false}
-          />
+    <div className="relative bg-[#0A0118] min-h-screen">
+      {loading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-[#A855F7] mx-auto mb-4" />
+            <p className="text-[#C4B5FD]">Loading project...</p>
+          </div>
         </div>
-        <div className="col-span-3 h-screen overflow-auto" ref={containerRef}>
-          {/* Slides  */}
-          {sliders?.map((slide: any, index: number) => (
-            <SliderFrame
-              slide={slide}
-              key={index}
-              colors={projectDetail?.designStyle?.colors}
-              setUpdateSlider={(updateSlideCode: string) =>
-                updateSliderCode(updateSlideCode, index)
-              }
-            />
-          ))}
+      ) : !projectDetail ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-[#C4B5FD] mb-4">Project not found</p>
+            <Button onClick={() => navigate('/workspace')}>Back to Workspace</Button>
+          </div>
         </div>
-        {/* Export button */}
-        <Button
-          onClick={exportAllIframesToPPT}
-          size={"lg"}
-          className="fixed bottom-6
-            transform left-1/2 -translate-x-1/2"
-          disabled={downloadLoading}
-        >
-          {downloadLoading ? (
-            <Loader2 className="animate-spin" />
-          ) : (
-            <FileDown />
-          )}{" "}
-          Export PPT
-        </Button>
+      ) : (
+        <>
+          {/* Editor grid */}
+          <div className="grid grid-cols-5 px-6 pt-6 pb-20 gap-6">
+            <div className="col-span-2 h-[calc(100vh-140px)] overflow-auto pr-2">
+              {/* Outlines  */}
+              <OutlineSection
+                outline={projectDetail?.outline ?? []}
+                handleUpdateOutline={()=>console.log()}
+                loading={false}
+                editable={false}
+              />
+            </div>
+            <div className="col-span-3 h-[calc(100vh-140px)] overflow-auto" ref={containerRef}>
+              {/* Slides  */}
+              {!sliders || sliders.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#A855F7] mx-auto mb-4" />
+                    <p className="text-[#C4B5FD]">Generating slides...</p>
+                    <p className="text-[#8B7AB8] text-sm mt-2">This may take a few moments</p>
+                  </div>
+                </div>
+              ) : (
+                sliders.map((slide: any, index: number) => (
+                  <SliderFrame
+                    slide={slide}
+                    key={index}
+                    colors={projectDetail?.designStyle?.colors}
+                    setUpdateSlider={(updateSlideCode: string) =>
+                      updateSliderCode(updateSlideCode, index)
+                    }
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Fixed bottom export bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40">
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0A0118] via-[#0A0118]/95 to-transparent pointer-events-none" />
+        <div className="relative flex justify-center pb-6 pt-12">
+          <Button
+            onClick={exportAllIframesToPPT}
+            variant="cta"
+            size={"lg"}
+            className="gap-2 px-8 shadow-[0_0_32px_-8px_rgba(168,85,247,0.5)]"
+            disabled={downloadLoading}
+          >
+            {downloadLoading ? (
+              <Loader2 className="animate-spin h-4 w-4" />
+            ) : (
+              <FileDown className="h-4 w-4" />
+            )}
+            Export PPT
+          </Button>
+        </div>
       </div>
     </div>
   );

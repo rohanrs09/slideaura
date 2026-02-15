@@ -14,28 +14,28 @@ type Props={
 function OutlineSection({loading,outline,handleUpdateOutline}:Props) {
   return (
     <div className='mt-8'>
-    <h1 className='font-bold text-xl'>Sliders Outline</h1>
+    <h1 className='font-heading font-bold text-lg text-[#F5F3FF]'>Slide Outline</h1>
     {
-        loading && <div>
+        loading && <div className="mt-4 space-y-3">
             {[1, 2, 3, 4].map((item) => (
-                <Skeleton key={item} className='h-[60px] w-full rounded-2xl mb-4' />
+                <Skeleton key={item} className='h-[72px] w-full rounded-xl bg-[#A855F7]/10' />
             ))
         }
         </div>
     }
 
-    <div className='mb-24'>
+    <div className='mb-24 mt-4 space-y-2'>
         {outline?.map((item,index)=>(
-            <div key={index} className='bg-white p-3 rounded-xl flex gap-6 items-center border mt-5 justify-between px-6'>
-                <div className='flex gap-6 items-center'>
-                <h2 className='font-bold text-2xl p-5 bg-gray-200 rounded-xl'>{index+1}</h2>
-                <div>
-                <h2 className='font-bold '>{item.slidePoint}</h2>
-                <p>{item.outline}</p>
+            <div key={index} className='group bg-[#150828] border border-[#A855F7]/20 hover:border-[#EC4899]/40 p-4 rounded-xl flex gap-4 items-center justify-between transition-all duration-200'>
+                <div className='flex gap-4 items-center min-w-0'>
+                <div className='font-mono font-semibold text-sm text-[#A855F7] bg-[#A855F7]/10 w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border border-[#A855F7]/20'>{index+1}</div>
+                <div className="min-w-0">
+                <h2 className='font-medium text-sm text-[#F5F3FF]'>{item.slidePoint}</h2>
+                <p className='text-xs text-[#C4B5FD] mt-0.5 line-clamp-1'>{item.outline}</p>
                 </div>
                 </div>
                 <EditOutlineDialog outlineData={item} onUpdate={handleUpdateOutline}>
-                <Button variant={'ghost'} size={'icon-lg'}> <Edit /> </Button>
+                <Button variant={'ghost'} size={'icon-sm'} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#8B7AB8] hover:text-[#F5F3FF]"> <Edit className="h-3.5 w-3.5" /> </Button>
                 </EditOutlineDialog>
             </div>
         ))}

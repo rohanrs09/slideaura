@@ -34,30 +34,38 @@ function EditOutlineDialog({children,outlineData,onUpdate}: any) {
   return (
     <Dialog open={openDialog} onOpenChange={setOpenDialog}>
       <DialogTrigger>{children}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="bg-[#150828] border border-[#A855F7]/20 shadow-2xl shadow-black/40 sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Edit Slider Outline</DialogTitle>
-          <DialogDescription>
-            <div>
-                <label>Slider Title</label>
-                <Input placeholder="Slider title" value={localData.slidePoint} 
-                onChange={(e)=>handleChange('slidePoint',e.target.value)}
-                />
-                <div className="mt-4">
-                    <label>Outline</label>
-                <Textarea placeholder="Outline" value={localData.outline} rows={5}
-                onChange={(e)=>handleChange('outline',e.target.value)}
-
-                />
+          <DialogTitle className="font-heading text-[#F5F3FF]">Edit Slide Outline</DialogTitle>
+          <DialogDescription asChild>
+            <div className="space-y-4 pt-2">
+                <div>
+                  <label className="text-xs font-medium text-[#C4B5FD] mb-1.5 block">Slide Title</label>
+                  <Input
+                    placeholder="Slide title"
+                    value={localData.slidePoint}
+                    onChange={(e)=>handleChange('slidePoint',e.target.value)}
+                    className="bg-[#1F0E3A] border-[#A855F7]/20 text-[#F5F3FF] placeholder:text-[#8B7AB8] focus:border-[#A855F7]/50 focus:ring-1 focus:ring-[#A855F7]/30 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-[#C4B5FD] mb-1.5 block">Outline</label>
+                  <Textarea
+                    placeholder="Outline content..."
+                    value={localData.outline}
+                    rows={5}
+                    onChange={(e)=>handleChange('outline',e.target.value)}
+                    className="bg-[#1F0E3A] border-[#A855F7]/20 text-[#F5F3FF] placeholder:text-[#8B7AB8] focus:border-[#A855F7]/50 focus:ring-1 focus:ring-[#A855F7]/30 rounded-lg resize-none"
+                  />
                 </div>
             </div>
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
+        <DialogFooter className="gap-2 pt-2">
             <DialogClose>
-                <Button variant={'outline'}>Close</Button>
+                <Button variant={'outline'} size="sm">Cancel</Button>
             </DialogClose>
-            <Button onClick={handleUpdate}>Save Changes</Button>
+            <Button onClick={handleUpdate} size="sm">Save Changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

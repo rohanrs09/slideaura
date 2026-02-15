@@ -135,30 +135,40 @@ function SlidersStyle({ selectStyle }: Props) {
   const [selectedStyle, setSelectedStyle] = useState<string>();
 
   return (
-    <div className="mt-5">
-      <h2 className="font-bold text-xl">Select Slider Style</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-4">
+    <div className="mt-8">
+      <h2 className="font-heading font-bold text-lg text-[#F5F3FF] mb-4">Select Slide Style</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         {Design_Styles.map((design, index) => (
           <div
             key={index}
-            className={`cursor-pointer ${
-              design.styleName == selectedStyle
-                ? "p-2 border-2 border-primary rounded-2xl"
-                : ""
+            className={`group cursor-pointer rounded-xl overflow-hidden border transition-all duration-300 ${
+              design.styleName === selectedStyle
+                ? "border-[#A855F7]/40 bg-[#A855F7]/[0.08] shadow-[0_0_24px_-8px_rgba(168,85,247,0.3)]"
+                : "border-[#A855F7]/20 bg-[#150828] hover:border-[#EC4899]/40 hover:bg-[#1F0E3A]"
             }`}
             onClick={() => {
               setSelectedStyle(design.styleName);
               selectStyle(design);
             }}
           >
-            <img
-              src={design.bannerImage}
-              alt={design.styleName}
-              width={300}
-              height={300}
-              className="w-full h-[130px] rounded-2xl object-cover hover:scale-105 transition-all"
-            />
-            <h2 className="font-medium text-center mt-1">{design.styleName}</h2>
+            <div className="relative overflow-hidden">
+              <img
+                src={design.bannerImage}
+                alt={design.styleName}
+                width={300}
+                height={300}
+                className="w-full h-[110px] object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#150828] via-transparent to-transparent" />
+              {design.styleName === selectedStyle && (
+                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-gradient-to-r from-[#A855F7] to-[#EC4899] flex items-center justify-center shadow-[0_0_12px_-2px_rgba(168,85,247,0.6)]">
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+              )}
+            </div>
+            <div className="px-3 py-2.5">
+              <h2 className="text-sm font-medium text-[#F5F3FF]">{design.styleName}</h2>
+            </div>
           </div>
         ))}
       </div>
