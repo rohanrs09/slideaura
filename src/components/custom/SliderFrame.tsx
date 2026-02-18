@@ -134,7 +134,6 @@ function SliderFrame({ slide, colors, setUpdateSlider }: SlideProps) {
         };
 
         const handleClick = (e: MouseEvent) => {
-            e.preventDefault();
             e.stopPropagation();
             const target = e.target as HTMLElement;
             
@@ -143,17 +142,10 @@ function SliderFrame({ slide, colors, setUpdateSlider }: SlideProps) {
                 return;
             }
 
-            // If clicking the same element, just close
-            if (selectedEl === target) {
-                clearSelection();
-                return;
-            }
-
-            // Clear previous selection completely
-            if (selectedEl) {
+            // Clear previous selection
+            if (selectedEl && selectedEl !== target) {
                 selectedEl.style.outline = '';
                 selectedEl.removeAttribute('contenteditable');
-                selectedEl.classList.remove('slide-hover');
             }
 
             // Set new selection
@@ -161,9 +153,8 @@ function SliderFrame({ slide, colors, setUpdateSlider }: SlideProps) {
             selectedElRef.current = target;
             target.classList.remove('slide-hover');
             target.style.outline = '2px solid #3B82F6';
-            
-            // Don't make it contenteditable - just show AI toolbar
-            // This prevents copy/paste issues
+            target.setAttribute('contenteditable', 'true');
+            target.focus();
             
             // Position floating toolbar
             const rect = target.getBoundingClientRect();
@@ -174,34 +165,49 @@ function SliderFrame({ slide, colors, setUpdateSlider }: SlideProps) {
             });
         };
 
+        const handleBlur = () => {
+            if (selectedEl && iframe.contentDocument?.body) {
+                const updatedCode = iframe.contentDocument.body.innerHTML;
+                setUpdateSlider(updatedCode);
+            }
+        };
+
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                clearSelection();
+            if (e.key === 'Escape' && selectedEl) {
+                selectedEl.style.outline = '';
+                selectedEl.removeAttribute('contenteditable');
+                selectedEl = null;
+                selectedElRef.current = null;
+                setCardPosition(null);
             }
         };
 
         // Attach event listeners after DOM is ready
-        const attachListeners = () => {
-            const body = doc.body;
-            if (!body) return;
-            
-            body.addEventListener('mouseover', handleMouseOver);
-            body.addEventListener('mouseout', handleMouseOut);
-            body.addEventListener('click', handleClick);
-            body.addEventListener('keydown', handleKeyDown);
-        };
+        doc.addEventListener('DOMContentLoaded', () => {
+            doc.body?.addEventListener('mouseover', handleMouseOver);
+            doc.body?.addEventListener('mouseout', handleMouseOut);
+            doc.body?.addEventListener('click', handleClick);
+            doc.body?.addEventListener('blur', handleBlur, true);
+            doc.body?.addEventListener('keydown', handleKeyDown);
+        });
 
-        setTimeout(attachListeners, 150);
+        // Also attach immediately for already loaded content
+        setTimeout(() => {
+            doc.body?.addEventListener('mouseover', handleMouseOver);
+            doc.body?.addEventListener('mouseout', handleMouseOut);
+            doc.body?.addEventListener('click', handleClick);
+            doc.body?.addEventListener('blur', handleBlur, true);
+            doc.body?.addEventListener('keydown', handleKeyDown);
+        }, 100);
 
         return () => {
-            const body = doc.body;
-            if (!body) return;
-            body.removeEventListener('mouseover', handleMouseOver);
-            body.removeEventListener('mouseout', handleMouseOut);
-            body.removeEventListener('click', handleClick);
-            body.removeEventListener('keydown', handleKeyDown);
+            doc.body?.removeEventListener('mouseover', handleMouseOver);
+            doc.body?.removeEventListener('mouseout', handleMouseOut);
+            doc.body?.removeEventListener('click', handleClick);
+            doc.body?.removeEventListener('blur', handleBlur, true);
+            doc.body?.removeEventListener('keydown', handleKeyDown);
         };
-    }, [slide?.code, colors, setUpdateSlider]);
+    }, [slide?.code]);
 
     const handleAiSectionChange = async (input: string) => {
         const selectedEl = selectedElRef.current;
@@ -211,33 +217,25 @@ function SliderFrame({ slide, colors, setUpdateSlider }: SlideProps) {
         setLoading(true);
         const oldHTML = selectedEl.outerHTML;
 
-        const prompt = `Modify this HTML element based on user instruction. Return ONLY the HTML element.
-
-User Instruction: "${input}"
-
-RULES:
-1. Return ONLY the modified HTML element (no markdown, no explanations, no code blocks)
-2. Keep the same structure and Tailwind CSS classes
-3. Maintain proper text contrast with background
-
-IMAGE GENERATION (if user wants new/different image):
-- Use ImageKit format: https://ik.imagekit.io/ikmedia/ik-genimg-prompt-DESCRIPTION/image.jpg
-- Replace DESCRIPTION with URL-encoded keywords (spaces = %20, no special chars)
-- Examples:
-  * Business meeting: https://ik.imagekit.io/ikmedia/ik-genimg-prompt-business%20meeting/meeting.jpg
-  * Modern office: https://ik.imagekit.io/ikmedia/ik-genimg-prompt-modern%20office/office.jpg
-  * Team collaboration: https://ik.imagekit.io/ikmedia/ik-genimg-prompt-team%20collaboration/team.jpg
-- Add transformations: ?tr=w-600,h-400,fo-auto,q-80
-- Image must have: class="rounded-lg object-cover" style="max-width: 100%; max-height: 350px;"
-
-Current HTML:
+        const prompt = `
+Regenerate or rewrite the following HTML code based on this user instruction.
+If user asked to change the image/regenerate the image then make sure to use
+ImageKit:
+'https://ik.imagekit.io/ikmedia/ik-genimg-prompt-{imagePrompt}/{altImageName}.jpg'
+Replace {imagePrompt} with relevant image prompt and altImageName with a random image name.
+if user want to crop image, or remove background or scale image or optimze image then add image kit ai transfromation 
+by providing ?tr=fo-auto,<other transfromation> etc.  
+"User Instruction is :${input}"
+HTML code:
 ${oldHTML}
-
-Modified HTML:`;
+`;
 
         try {
             const result = await GeminiAiModel.generateContent(prompt);
-            const newHTML = (await result.response.text()).trim();
+            let newHTML = (await result.response.text()).trim();
+            
+            // Clean up markdown code blocks if AI returns them
+            newHTML = newHTML.replace(/```html/g, '').replace(/```/g, '').trim();
 
             // Replace only the selected element
             const tempDiv = iframe.contentDocument?.createElement("div");
@@ -248,13 +246,14 @@ Modified HTML:`;
                 if (newNode && selectedEl.parentNode) {
                     selectedEl.parentNode.replaceChild(newNode, selectedEl);
                     selectedElRef.current = newNode as HTMLElement;
+                    console.log("✅ Element replaced successfully");
 
-                    const updatedSliderCode = iframe.contentDocument?.body?.innerHTML || newHTML
-                    setUpdateSlider(updatedSliderCode)
+                    const updatedSliderCode = iframe.contentDocument?.body?.innerHTML || newHTML;
+                    setUpdateSlider(updatedSliderCode);
                 }
             }
-        } catch {
-            // AI generation failed - silently handle error
+        } catch (err) {
+            console.error("AI generation failed:", err);
         }
 
         setLoading(false);
