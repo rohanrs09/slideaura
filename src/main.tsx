@@ -12,6 +12,7 @@ import WorkspaceErrorPage from "./workspace/ErrorPage.tsx";
 import Pricing from "./components/custom/Pricing.tsx";
 import { About } from "./App.tsx";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { Toaster } from "sonner";
 
 const router = createBrowserRouter([
   { path: "/", element: <App /> },
@@ -32,24 +33,50 @@ const router = createBrowserRouter([
   },
 ]);
 
+// Environment variables validation
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const FIREBASE_API_KEY = import.meta.env.VITE_FIREBASE_API_KEY;
 
 // Validate required environment variables
-if (!PUBLISHABLE_KEY) {
-  throw new Error("❌ VITE_CLERK_PUBLISHABLE_KEY is required. Please set it in your .env file");
-}
+const validateEnvironment = () => {
+  const errors: string[] = [];
 
-if (PUBLISHABLE_KEY.includes('your_') || PUBLISHABLE_KEY.includes('YOUR_')) {
-  throw new Error("❌ Please replace the placeholder Clerk publishable key with your actual key from Clerk Dashboard");
-}
+  if (!PUBLISHABLE_KEY) {
+    errors.push('VITE_CLERK_PUBLISHABLE_KEY is required');
+  } else if (PUBLISHABLE_KEY.includes('your_clerk_publishable_key_here') || PUBLISHABLE_KEY.includes('pk_test_your_actual')) {
+    errors.push('VITE_CLERK_PUBLISHABLE_KEY contains placeholder value');
+  } else if (!PUBLISHABLE_KEY.startsWith('pk_test_') && !PUBLISHABLE_KEY.startsWith('pk_live_')) {
+    errors.push('VITE_CLERK_PUBLISHABLE_KEY must start with pk_test_ or pk_live_');
+  }
 
-function Root() {
+  if (!FIREBASE_API_KEY) {
+    errors.push('VITE_FIREBASE_API_KEY is required');
+  } else if (FIREBASE_API_KEY.includes('your_firebase_api_key_here')) {
+    errors.push('VITE_FIREBASE_API_KEY contains placeholder value');
+  }
+
+  if (errors.length > 0) {
+    const errorMessage = `Environment Configuration Error:\n${errors.join('\n')}\n\nTo fix:\n1. Copy .env.example to .env.local\n2. Replace placeholder values with actual keys\n3. Restart development server`;
+    throw new Error(errorMessage);
+  }
+};
+
+validateEnvironment();
+
+
+export function Root() {
   const [userDetail, setUserDetail] = useState();
   return (
     <ErrorBoundary>
       <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
         <UserDetailContext.Provider value={{ userDetail, setUserDetail }}>
           <RouterProvider router={router} />
+          <Toaster 
+            position="top-right" 
+            richColors 
+            closeButton
+            theme="dark"
+          />
         </UserDetailContext.Provider>
       </ClerkProvider>
     </ErrorBoundary>

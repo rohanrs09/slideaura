@@ -6,26 +6,36 @@ const path = require('path');
 console.log('🚀 SlideAura Environment Setup');
 console.log('==============================\n');
 
-// Check if .env file exists
+// Check if .env.local file exists (recommended over .env)
+const envLocalPath = path.join(__dirname, '.env.local');
 const envPath = path.join(__dirname, '.env');
 const envExamplePath = path.join(__dirname, '.env.example');
 
-if (!fs.existsSync(envPath)) {
-  console.log('📝 Creating .env file from template...');
+let targetEnvPath = envLocalPath;
+let envFileName = '.env.local';
+
+// If .env.local doesn't exist but .env does, use .env
+if (!fs.existsSync(envLocalPath) && fs.existsSync(envPath)) {
+  targetEnvPath = envPath;
+  envFileName = '.env';
+}
+
+if (!fs.existsSync(targetEnvPath)) {
+  console.log(`📝 Creating ${envFileName} file from template...`);
   
   if (fs.existsSync(envExamplePath)) {
-    fs.copyFileSync(envExamplePath, envPath);
-    console.log('✅ .env file created successfully!');
+    fs.copyFileSync(envExamplePath, targetEnvPath);
+    console.log(`✅ ${envFileName} file created successfully!`);
   } else {
     console.log('❌ .env.example file not found');
     process.exit(1);
   }
 } else {
-  console.log('✅ .env file already exists');
+  console.log(`✅ ${envFileName} file already exists`);
 }
 
-// Read current .env content
-const envContent = fs.readFileSync(envPath, 'utf8');
+// Read current env content
+const envContent = fs.readFileSync(targetEnvPath, 'utf8');
 
 // Check for required environment variables
 const requiredVars = [
@@ -58,7 +68,7 @@ if (needsUpdate) {
   console.log('   - Go to Project Settings > General > Your apps');
   console.log('   - Click the web app icon to get the API key');
   console.log('3. Update the values in your .env file');
-  console.log('\n📄 Your .env file is located at:', envPath);
+  console.log(`\n📄 Your ${envFileName} file is located at:`, targetEnvPath);
   console.log('\n🔒 Security Note:');
   console.log('==================');
   console.log('• Only the Firebase API key is required from environment');

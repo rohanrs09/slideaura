@@ -47,13 +47,20 @@ const ai = getAI(app, { backend: new GoogleAIBackend() });
 export const GeminiAiModel = getGenerativeModel(ai, { model: "gemini-2.5-flash" });
 
 
-// Create a `LiveGenerativeModel` instance with the flash-live model (only model that supports the Live API)
+// Create a `LiveGenerativeModel` instance with a supported model
 export const GeminiAiLiveModel = getLiveGenerativeModel(ai, {
-  model: "gemini-2.0-flash-live-001",
+  model: "gemini-1.5-flash-latest",
   // Configure the model to respond with text
   generationConfig: {
     responseModalities: [ResponseModality.TEXT],
   }, 
 });
-   
 
+// ImageKit Configuration for high-quality image generation
+export const IMAGEKIT_URL_ENDPOINT = 'https://ik.imagekit.io/ikmedia';
+
+export function generateImageKitUrl(prompt: string, imageName: string): string {
+  const encodedPrompt = encodeURIComponent(prompt);
+  const cleanImageName = imageName.replace(/[^a-zA-Z0-9]/g, '_');
+  return `${IMAGEKIT_URL_ENDPOINT}/tr:w-1280,h-720,q-90,f-webp/ik-genimg-prompt-${encodedPrompt}/${cleanImageName}.jpg`;
+}

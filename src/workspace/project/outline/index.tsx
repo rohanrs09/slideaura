@@ -12,11 +12,12 @@ import CreditLimitDialog from "@/components/custom/CreditLimitDialog";
 import { useAuth } from "@clerk/clerk-react";
 
 const OUTLINE_PROMPT = `
-Generate a PowerPoint slide outline for the topic {userInput}". Create {noOfSliders} slides in total. Each slide should include a topic name and a 2-line descriptive outline that clearly explains what content the slide will cover.
+Generate a PowerPoint slide outline for the topic {userInput}". Create exactly {noOfSlides} slides in total. Each slide should include a topic name and a 2-line descriptive outline that clearly explains what content the slide will cover.
 Include the following structure:
 The first slide should be a Welcome screen.
 The second slide should be an Agenda screen.
 The final slide should be a Thank You screen.
+IMPORTANT: Generate exactly {noOfSlides} slides - no more, no less.
 Return the response only in JSON format, following this schema:
 [
  {
@@ -190,7 +191,7 @@ function Outline() {
     
     // Check if style is selected
     if (!selectedStyle) {
-      alert("Please select a slide style before generating slides");
+      alert("Please select a design style for your slides");
       return;
     }
     

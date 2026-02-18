@@ -91,32 +91,32 @@ const Design_Styles = [
     icon: "Rocket",
     bannerImage: TechSlider,
   },
-  // {
-  //   "styleName": "Futuristic Neon ⚡",
-  //   "colors": {
-  //     "primary": "#00FFFF",
-  //     "secondary": "#FF00FF",
-  //     "accent": "#0A0A0A",
-  //     "background": "#1A1A1A",
-  //     "gradient": "linear-gradient(135deg, #00FFFF, #FF00FF)"
-  //   },
-  //   "designGuide": "🧠 Generate a futuristic neon-style PPT with glowing text, cyberpunk colors, and dark glass backgrounds. Use modern sans-serif fonts and motion-inspired visuals.",
-  //   "icon": "Zap",
-  //   "bannerImage": ""
-  // },
-  // {
-  //   "styleName": "Infographic Style 📊",
-  //   "colors": {
-  //     "primary": "#007AFF",
-  //     "secondary": "#FF9500",
-  //     "accent": "#FF3B30",
-  //     "background": "#FFFFFF",
-  //     "gradient": "linear-gradient(135deg, #007AFF, #FF9500, #FF3B30)"
-  //   },
-  //   "designGuide": "🧠 Create an infographic-style presentation using colorful charts, vector icons, and bold data visuals. Focus on clarity, consistency, and engaging flow for data storytelling.",
-  //   "icon": "BarChart",
-  //   "bannerImage": ""
-  // }
+  {
+    "styleName": "Futuristic Neon ⚡",
+    "colors": {
+      "primary": "#00FFFF",
+      "secondary": "#FF00FF",
+      "accent": "#0A0A0A",
+      "background": "#1A1A1A",
+      "gradient": "linear-gradient(135deg, #00FFFF, #FF00FF)"
+    },
+    "designGuide": "🧠 Generate a futuristic neon-style PPT with glowing text, cyberpunk colors, and dark glass backgrounds. Use modern sans-serif fonts and motion-inspired visuals.",
+    "icon": "Zap",
+    "bannerImage": ""
+  },
+  {
+    "styleName": "Infographic Style 📊",
+    "colors": {
+      "primary": "#007AFF",
+      "secondary": "#FF9500",
+      "accent": "#FF3B30",
+      "background": "#FFFFFF",
+      "gradient": "linear-gradient(135deg, #007AFF, #FF9500, #FF3B30)"
+    },
+    "designGuide": "🧠 Create an infographic-style presentation using colorful charts, vector icons, and bold data visuals. Focus on clarity, consistency, and engaging flow for data storytelling.",
+    "icon": "BarChart",
+    "bannerImage": ""
+  }
 ];
 
 type Props = {

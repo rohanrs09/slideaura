@@ -7,101 +7,137 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useParams, useNavigate } from "react-router-dom";
 import type { Project } from "../outline";
 import SliderFrame from "@/components/custom/SliderFrame";
+import InlineSlideEditor from "@/components/custom/InlineSlideEditor";
 import * as htmlToImage from "html-to-image";
 import PptxGenJS from "pptxgenjs";
 import { Loader2, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
+import { showToast } from "@/lib/toast";
 
-const SLIDER_PROMPT = `Generate HTML (TailwindCSS + Flowbite UI + Lucide Icons) 
-code for a 16:9 ppt slider in Modern Dark style.
-{DESIGN_STYLE}. No responsive design; use a fixed 16:9 layout for slides.
-Use Flowbite component structure. Use different layouts depending on content and style.
-Use TailwindCSS colors like primary, accent, gradients, background, etc., and include colors from {COLORS_CODE}.
-MetaData for Slider: {METADATA}
+const SLIDER_PROMPT = `YOU ARE A PRESENTATION DESIGN EXPERT. FOLLOW THE SELECTED DESIGN STYLE EXACTLY.
 
-- Ensure images are optimized to fit within their container div and do not overflow.
-- Use proper width/height constraints on images so they scale down if needed to remain inside the slide.
-- Maintain 16:9 aspect ratio for all slides and all media.
-- Use CSS classes like 'object-cover' or 'object-contain' for images to prevent stretching or overflow.
-- Use grid or flex layouts to properly divide the slide so elements do not overlap.
+SELECTED DESIGN STYLE:
+{DESIGN_STYLE}
 
-Generate Image if needed using:
-'https://ik.imagekit.io/ikmedia/ik-genimg-prompt-{imagePrompt}/{altImageName}.jpg'
-Replace {imagePrompt} with relevant image prompt and altImageName with a random image name.  
+MANDATORY COLORS TO USE:
+{COLORS_CODE}
 
-<!-- Slide Content Wrapper (Fixed 16:9 Aspect Ratio) -->
-<div class="w-[800px] h-[500px] relative overflow-hidden">
-  <!-- Slide content here -->
-</div>
-Also do not add any overlay : Avoid this :
-    <div class="absolute inset-0 bg-gradient-to-br from-primary to-secondary opacity-20"></div>
+SLIDE CONTENT:
+{METADATA}
 
+CRITICAL: The selected design style is NOT a suggestion - it is a REQUIREMENT. You MUST create slides that match the selected style exactly.
 
-Just provide body content for 1 slider. Make sure all content, including images, stays within the main slide div and preserves the 16:9 ratio.`;
+DEMANDS:
+1. Return ONLY the HTML div element (no markdown, no explanations, no code blocks)
+2. Use this structure: <div class="w-[800px] h-[500px] flex flex-col p-8" style="background: [background color]">
+3. Follow the design guide EXACTLY - read it carefully and implement it
+4. Use the EXACT colors provided - no other colors allowed
+5. Match the aesthetic described in the design guide
 
-// const DUMMY_SLIDER = ` <!-- Slide Content Wrapper (Fixed 16:9 Aspect Ratio) -->
-//     <div class="w-[800px] h-[500px] relative bg-[#0D0D0D] text-white overflow-hidden">
-//         <!-- Background Gradient Overlay -->
-//         <div class="absolute inset-0 bg-gradient-to-br from-[#0D0D0D] to-[#1F1F1F] opacity-70"></div>
+STYLE-SPECIFIC REQUIREMENTS:
 
-//         <!-- Grid Layout for Content -->
-//         <div class="grid grid-cols-2 grid-rows-2 h-full relative z-10">
+PROFESSIONAL BLUE :
+- Clean corporate layout with blue accents
+- Sans-serif fonts (font-sans)
+- Subtle shadows and borders
+- Professional business imagery
+- Grid-based layouts
+- Blue primary color, white background
 
-//             <!-- Left Top - Title & Outline -->
-//             <div class="col-span-1 row-span-1 p-8 flex flex-col justify-start items-start">
-//                 <h1 class="text-4xl font-serif font-bold text-accent mb-4">
-//                     Welcome to Kravix Studio: The Future of Film
-//                 </h1>
-//                 <p class="text-sm text-gray-300 leading-relaxed">
-//                     Welcome to our investor pitch for [App Name], an innovative AI Short Film Generator.<br>
-//                     We are revolutionizing content creation, making filmmaking accessible to everyone.
-//                 </p>
-//             </div>
+MINIMAL WHITE :
+- Maximum whitespace
+- Black text on white background
+- Simple typography
+- Minimal decorations
+- Clean lines and borders
+- No gradients or complex effects
 
-//             <!-- Right Top - Image/Visual -->
-//             <div class="col-span-1 row-span-1 p-4 flex justify-end items-start">
-//                 <img src="https://ik.imagekit.io/ikmedia/ik-genimg-prompt-futuristic%20film%20studio%20interior%20black%20gold%20accents/filmStudioAesthetic.jpg" alt="filmStudioAesthetic" class="rounded-lg shadow-lg w-full h-auto object-cover max-h-[200px]">
-//             </div>
+MODERN GRADIENT :
+- Vibrant gradient backgrounds
+- Glassmorphism effects (backdrop-blur)
+- Colorful accents
+- Modern typography
+- Dynamic layouts
+- Use gradient from colors
 
-//             <!-- Left Bottom - Call to Action/Key Benefit -->
-//             <div class="col-span-1 row-span-1 p-8 flex flex-col justify-end items-start">
-//                 <div class="bg-[#1F1F1F] bg-opacity-60 backdrop-blur-md rounded-lg p-6">
-//                     <h2 class="text-2xl font-serif font-semibold mb-2">
-//                         Unleash Your Creative Vision
-//                     </h2>
-//                     <p class="text-gray-200 text-sm leading-relaxed">
-//                         Transform ideas into stunning short films with the power of AI. No experience needed.
-//                     </p>
-//                 </div>
-//             </div>
+ELEGANT DARK :
+- Black/dark background
+- Gold/yellow accents
+- Serif fonts (font-serif)
+- Luxury feel
+- Subtle lighting effects
+- Premium imagery
 
-//             <!-- Right Bottom - Slide Number & Subtle Element -->
-//             <div class="col-span-1 row-span-1 p-8 flex justify-end items-end">
-//                  <div class="flex items-center space-x-2">
-//                         <span class="text-gray-400 text-xs font-medium">Slide</span>
-//                         <span class="text-accent font-bold text-xl">1</span>
-//                     </div>
+CREATIVE PASTEL :
+- Soft pastel colors
+- Rounded corners (rounded-2xl)
+- Playful illustrations
+- Light backgrounds
+- Fun, creative layouts
+- Use accent colors prominently
 
-//             </div>
+STARTUP PITCH :
+- Bold headings
+- Data-focused layouts
+- Clean charts and stats
+- Blue-green color scheme
+- Investor-friendly design
+- Professional but modern
 
-//             <!-- Subtle Lighting Effect (Optional) -->
-//             <div class="absolute inset-0 pointer-events-none">
-//                 <div class="absolute top-1/4 left-1/4 w-32 h-32 bg-accent rounded-full blur-3xl opacity-10"></div>
-//                 <div class="absolute bottom-1/4 right-1/4 w-24 h-24 bg-primary rounded-full blur-2xl opacity-10"></div>
-//             </div>
-//         </div>
-//     </div>`
+FUTURISTIC NEON :
+- Dark background with neon accents
+- Glowing text effects
+- Cyberpunk aesthetic
+- Modern sans-serif fonts
+- High-tech imagery
+- Cyan/magenta color scheme
+
+INFOGRAPHIC STYLE :
+- Data visualization focus
+- Bold colors and icons
+- Clear hierarchy
+- Charts and graphs
+- Statistical layouts
+- Professional data presentation
+
+TEXT COLOR RULES:
+- Dark backgrounds: text-white, text-gray-100
+- Light backgrounds: text-gray-900, text-gray-800
+- Use accent colors for highlights
+- Ensure high contrast
+
+IMAGE REQUIREMENTS (CRITICAL):
+- ALWAYS include relevant images in slides
+- Use ImageKit: https://ik.imagekit.io/ikmedia/ik-genimg-prompt-DESCRIPTION/image.jpg
+- Replace DESCRIPTION with relevant keywords (spaces = %20)
+- Examples:
+  * Business: https://ik.imagekit.io/ikmedia/ik-genimg-prompt-business%20presentation/slide.jpg
+  * Technology: https://ik.imagekit.io/ikmedia/ik-genimg-prompt-modern%20technology/tech.jpg
+  * Team: https://ik.imagekit.io/ikmedia/ik-genimg-prompt-professional%20team/team.jpg
+- Add transformations: ?tr=w-600,h-400,fo-auto,q-80
+- Image HTML: <img src="URL" class="rounded-lg object-cover" style="max-width: 100%; max-height: 350px;" alt="description">
+- Place images in appropriate layout positions
+
+LAYOUT WITH IMAGES:
+- Title slides: Optional decorative image
+- Content slides: MUST have image (60% text, 40% image in grid)
+- List slides: Optional icon or small image
+- Data slides: Charts or infographic images
+
+Generate the slide now - MUST match style AND include images:`
 
 function Editor() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const [projectDetail, setProjectDetail] = useState<Project>();
   const [loading, setLoading] = useState(false);
-  const [sliders, setSliders] = useState<any[]>([]);
+  const [sliders, setSliders] = useState<Array<{ code: string }>>([]);
   const [isSlidesGenerated, setIsSlidesGenerated] = useState<number | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState({ current: 0, total: 0 });
+  const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (projectId) {
@@ -113,7 +149,7 @@ function Editor() {
     setLoading(true);
     try {
       const docRef = doc(firebaseDb, "projects", projectId ?? "");
-      const docSnap: any = await getDoc(docRef);
+      const docSnap = await getDoc(docRef);
       
       if (!docSnap.exists()) {
         console.error("❌ Project not found");
@@ -122,7 +158,6 @@ function Editor() {
       }
       
       const projectData = docSnap.data();
-      console.log("📦 Project data:", JSON.stringify(projectData));
       
       // Check if required data exists
       if (!projectData.outline || !projectData.designStyle) {
@@ -131,7 +166,7 @@ function Editor() {
         return;
       }
       
-      setProjectDetail(projectData);
+      setProjectDetail(projectData as Project);
     } catch (error) {
       console.error("❌ Error loading project:", error);
     } finally {
@@ -142,104 +177,189 @@ function Editor() {
   useEffect(() => {
     if (projectDetail && !projectDetail?.slides?.length) {
       GenerateSlides();
-    } else {
-      setSliders(projectDetail?.slides || []);
+    } else if (projectDetail?.slides) {
+      // Fix existing slides with invisible text and apply theme colors
+      const colors = projectDetail?.designStyle?.colors || {};
+      const fixedSlides = projectDetail.slides.map((slide) => {
+        if (!slide.code) return slide;
+        
+        let fixedCode = slide.code;
+        
+        // Replace white text with primary color for visibility
+        if (fixedCode.includes('color: white')) {
+          fixedCode = fixedCode.replace(/color:\s*white/g, `color: ${colors.primary || '#000000'}`);
+        }
+        
+        // Ensure background color is applied
+        if (colors.background && !fixedCode.includes(`background: ${colors.background}`)) {
+          fixedCode = fixedCode.replace(/background:\s*#[A-Fa-f0-9]{6}/g, `background: ${colors.background}`);
+        }
+        
+        return { ...slide, code: fixedCode };
+      });
+      setSliders(fixedSlides);
     }
   }, [projectDetail]);
 
   const GenerateSlides = async () => {
-    if (!projectDetail?.outline || projectDetail.outline.length === 0) return;
-
-    console.log("🚀 Starting slide generation...");
-
-    // Optional: initialize sliders to empty states
-    // setSliders(projectDetail.outline.map(() => ({ code: "" })));
-
-    for (
-      let index = 0;
-      index < projectDetail.outline.length;
-      index++
-    ) {
-      const metaData = projectDetail.outline[index];
-      const prompt = SLIDER_PROMPT.replace(
-        "{DESIGN_STYLE}",
-        projectDetail?.designStyle?.designGuide ?? ""
-      )
-        .replace(
-          "{COLORS_CODE}",
-          JSON.stringify(projectDetail?.designStyle?.colors)
-        )
-        .replace("{METADATA}", JSON.stringify(metaData));
-
-      console.log("🧠 Generating slide", index + 1);
-      await GeminiSlideCall(prompt, index); // wait for one slide to finish before next
-      console.log("✅ Finished slide", index + 1);
+    if (!projectDetail?.outline || projectDetail.outline.length === 0) {
+      showToast.error("Missing Outline", "Please create an outline first before generating slides.");
+      return;
     }
 
-    console.log("🎉 All slides generated!");
+    // Get slide count (no need to verify - AI optimizes structure)
+    const actualSlides = projectDetail.outline.length;
 
-    setIsSlidesGenerated(Date.now());
+    // Starting slide generation
+
+    // Show immediate feedback
+    showToast.info("Generating Slides", `Creating ${actualSlides} beautiful slides for you...`);
+
+    // Initialize sliders array and progress
+    setSliders(new Array(actualSlides).fill(null));
+    setGenerationProgress({ current: 0, total: actualSlides });
+    
+    try {
+      for (let index = 0; index < projectDetail.outline.length; index++) {
+        const slideData = projectDetail.outline[index];
+        
+        // Generate professional prompt with all placeholders
+        const colors = projectDetail?.designStyle?.colors || {};
+        const metadata = {
+          slideNumber: index + 1,
+          totalSlides: projectDetail.outline.length,
+          title: slideData.slidePoint || `Slide ${index + 1}`,
+          content: slideData.outline || '',
+          style: projectDetail?.designStyle?.styleName || "Professional"
+        };
+        
+        const prompt = SLIDER_PROMPT
+          .replace("{DESIGN_STYLE}", projectDetail?.designStyle?.styleName || "Professional")
+          .replace("{COLORS_CODE}", JSON.stringify(colors))
+          .replace("{METADATA}", JSON.stringify(metadata));
+
+        setGenerationProgress({ current: index + 1, total: projectDetail.outline.length });
+        await GeminiSlideCall(prompt, index);
+      }
+
+      // All slides generated successfully
+      setIsSlidesGenerated(Date.now());
+      
+      // Show success message
+      showToast.success("Slides Generated!", `Successfully created ${actualSlides} beautiful slides`);
+      
+    } catch (error) {
+      console.error("❌ Failed to generate slides:", error);
+      showToast.error("Generation Failed", "Slide generation encountered an issue. Please try again.");
+    }
   };
 
   const GeminiSlideCall = async (prompt: string, index: number) => {
+    let session = null;
+    
     try {
-      const session = await GeminiAiLiveModel.connect();
+      session = await GeminiAiLiveModel.connect();
       await session.send(prompt);
 
       let text = "";
+      let retryCount = 0;
+      const maxRetries = 3;
 
-      // Read stream
-      for await (const message of session.receive()) {
-        if (message.type === "serverContent") {
-          const parts = message.modelTurn?.parts;
-          if (parts && parts.length > 0) {
-            text += parts?.map((p) => p.text).join("");
+      // Read stream with retry logic
+      while (retryCount < maxRetries) {
+        try {
+          for await (const message of session.receive()) {
+            if (message.type === "serverContent") {
+              const parts = message.modelTurn?.parts;
+              if (parts && parts.length > 0) {
+                text += parts?.map((p) => p.text).join("");
 
-            const finalText = text
-              .replace(/```html/g, "")
-              .replace(/```/g, "")
-              .trim();
+                const finalText = text
+                  .replace(/```html/g, "")
+                  .replace(/```/g, "")
+                  .trim();
 
-            // Live update the slider
-            setSliders((prev: any[]) => {
-              const updated = prev ? [...prev] : [];
-              updated[index] = { code: finalText };
-              return updated;
-            });
+                // Live update the slider
+                setSliders((prev) => {
+                  const updated = prev ? [...prev] : [];
+                  updated[index] = { code: finalText };
+                  return updated;
+                });
+              }
+
+              // Check for completion - use @ts-expect-error for API limitation
+              // @ts-expect-error - turnComplete exists but not in current types
+              if (message.modelTurn?.turnComplete) {
+                // Slide generation complete
+                break;
+              }
+            }
           }
-
-          if (message.turnComplete) {
-            console.log("✅ Slide", index + 1, "complete");
-            break; // important: exit loop when done
+          break; // Success, exit retry loop
+        } catch (streamError) {
+          retryCount++;
+          console.warn(`⚠️ Stream error for slide ${index + 1}, retry ${retryCount}/${maxRetries}:`, streamError);
+          
+          if (retryCount >= maxRetries) {
+            throw new Error(`Failed to generate slide ${index + 1} after ${maxRetries} attempts: ${streamError instanceof Error ? streamError.message : 'Unknown error'}`);
           }
+          
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
         }
       }
 
-      session.close();
-      
-      // Validate that we got content
-      if (!text || text.trim().length < 50) {
-        throw new Error("Generated content too short or empty");
+      // Validate that we got content - be more lenient
+      if (!text || text.trim().length < 20) {
+        throw new Error(`Generated content for slide ${index + 1} is empty or too short`);
       }
       
-    } catch (err) {
-      console.error("❌ Error generating slide", index + 1, err);
+      // Ensure we have a valid div structure
+      if (!text.includes('<div') || !text.includes('</div>')) {
+        throw new Error(`Generated content for slide ${index + 1} is not valid HTML`);
+      }
+
+      // Slide generated successfully
       
-      // Fallback content for failed slide
-      const fallbackContent = `
-        <div class="w-[800px] h-[500px] relative bg-[#0D0D0D] text-white overflow-hidden flex items-center justify-center">
-          <div class="text-center p-8">
-            <h2 class="text-3xl font-bold text-[#8b5cf6] mb-4">${projectDetail?.outline[index]?.slidePoint || 'Slide ' + (index + 1)}</h2>
-            <p class="text-gray-300">${projectDetail?.outline[index]?.outline || 'Content generation failed. Please try regenerating this slide.'}</p>
+    } catch (error) {
+      console.error(`❌ Error generating slide ${index + 1}:`, error);
+      
+      // Show user-friendly error message
+      if (error instanceof Error && error.message.includes('handshake failed')) {
+        showToast.error("AI Connection Failed", "Unable to connect to AI service. Please try again in a moment.");
+      } else {
+        showToast.error("Slide Generation Error", `Error generating slide ${index + 1}. Using fallback content.`);
+      }
+      
+      // Create a proper fallback slide with actual content
+      const slideData = projectDetail?.outline?.[index];
+      const colors = projectDetail?.designStyle?.colors || {};
+      const fallbackSlide = `
+        <div class="w-[1280px] h-[720px] p-16 flex flex-col justify-center items-center text-center" style="background: ${colors.background || '#1a1a2e'}; color: white;">
+          <h1 class="text-6xl font-bold mb-6">${slideData?.slidePoint || `Slide ${index + 1}`}</h1>
+          <div class="text-2xl max-w-3xl mb-8 leading-relaxed">
+            ${slideData?.outline || 'Content is being generated...'}
+          </div>
+          <div class="text-lg text-gray-300 mt-4">
+            <p>Slide ${index + 1} of ${projectDetail?.outline?.length || 1}</p>
           </div>
         </div>
       `;
       
-      setSliders((prev: any[]) => {
+      setSliders((prev) => {
         const updated = prev ? [...prev] : [];
-        updated[index] = { code: fallbackContent };
+        updated[index] = { code: fallbackSlide };
         return updated;
       });
+      
+    } finally {
+      if (session) {
+        try {
+          await session.close();
+        } catch (closeError) {
+          console.warn(`⚠️ Error closing session for slide ${index + 1}:`, closeError);
+        }
+      }
     }
   };
 
@@ -254,7 +374,7 @@ function Editor() {
     }
     
     try {
-      console.log("💾 Saving", sliders.length, "slides to Firebase...");
+      // Saving slides to Firebase
       await setDoc(
         doc(firebaseDb, "projects", projectId ?? ""),
         {
@@ -264,14 +384,14 @@ function Editor() {
           merge: true,
         }
       );
-      console.log("✅ Slides saved successfully");
+      // Slides saved successfully
     } catch (error) {
       console.error("❌ Error saving slides:", error);
     }
   };
 
   const updateSliderCode = (updateSlideCode: string, index: number) => {
-    setSliders((prev: any) => {
+    setSliders((prev) => {
       const updated = [...prev];
       updated[index] = {
         ...updated[index],
@@ -280,6 +400,30 @@ function Editor() {
       return updated;
     });
     setIsSlidesGenerated(Date.now());
+  };
+
+  // Handle outline updates and save to Firebase
+  const handleOutlineUpdate = async (slideNo: string, updatedData: { slidePoint: string; outline: string }) => {
+    if (!projectDetail || !projectId) return;
+    
+    const updatedOutline = projectDetail.outline.map((item) =>
+      item.slideNo === slideNo ? { ...item, ...updatedData } : item
+    );
+    
+    // Update local state
+    setProjectDetail({ ...projectDetail, outline: updatedOutline });
+    
+    // Save to Firebase
+    try {
+      await setDoc(
+        doc(firebaseDb, "projects", projectId),
+        { outline: updatedOutline },
+        { merge: true }
+      );
+      console.log("✅ Outline updated and saved");
+    } catch (error) {
+      console.error("❌ Error saving outline:", error);
+    }
   };
 
   const exportAllIframesToPPT = async () => {
@@ -298,8 +442,8 @@ function Editor() {
       const slideNode = iframeDoc.querySelector("body > div") || iframeDoc.body;
       if (!slideNode) continue;
 
-      console.log(`Exporting slide ${i + 1}...`);
-      //@ts-ignore
+      // Exporting slide
+      // @ts-expect-error - html2image types are incomplete but the function works
       const dataUrl = await htmlToImage.toPng(slideNode, { quality: 1 });
 
       const slide = pptx.addSlide();
@@ -321,7 +465,7 @@ function Editor() {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin text-[#A855F7] mx-auto mb-4" />
-            <p className="text-[#C4B5FD]">Loading project...</p>
+            <p className="text-[#C4B5FD]">Preparing your workspace...</p>
           </div>
         </div>
       ) : !projectDetail ? (
@@ -334,38 +478,77 @@ function Editor() {
       ) : (
         <>
           {/* Editor grid */}
-          <div className="grid grid-cols-5 px-6 pt-6 pb-20 gap-6">
-            <div className="col-span-2 h-[calc(100vh-140px)] overflow-auto pr-2">
-              {/* Outlines  */}
-              <OutlineSection
-                outline={projectDetail?.outline ?? []}
-                handleUpdateOutline={()=>console.log()}
-                loading={false}
-                editable={false}
-              />
+          <div className="flex flex-col lg:flex-row gap-6 p-6 pb-32">
+            {/* Left panel - Outline */}
+            <div className="w-full lg:w-2/5 h-[calc(100vh-160px)] overflow-auto">
+              <div className="bg-[#150828] rounded-2xl border border-[#A855F7]/20 p-6">
+                <h2 className="text-xl font-semibold text-white mb-4">Slide Outline</h2>
+                <OutlineSection
+                  outline={projectDetail?.outline ?? []}
+                  handleUpdateOutline={handleOutlineUpdate}
+                  loading={false}
+                  editable={true}
+                />
+              </div>
             </div>
-            <div className="col-span-3 h-[calc(100vh-140px)] overflow-auto" ref={containerRef}>
-              {/* Slides  */}
-              {!sliders || sliders.length === 0 ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-[#A855F7] mx-auto mb-4" />
-                    <p className="text-[#C4B5FD]">Generating slides...</p>
-                    <p className="text-[#8B7AB8] text-sm mt-2">This may take a few moments</p>
+            
+            {/* Right panel - Slides */}
+            <div className="w-full lg:w-3/5 h-[calc(100vh-160px)] overflow-auto" ref={containerRef}>
+              <div className="space-y-6">
+                {/* Slides  */}
+                {!sliders || sliders.length === 0 ? (
+                  <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center max-w-md">
+                      <Loader2 className="h-12 w-12 animate-spin text-[#A855F7] mx-auto mb-4" />
+                      <p className="text-[#C4B5FD] text-lg font-semibold mb-2">Creating your beautiful slides...</p>
+                      {generationProgress.total > 0 && (
+                        <>
+                          <div className="w-full bg-[#1F0E3A] rounded-full h-2 mb-2">
+                            <div 
+                              className="bg-gradient-to-r from-[#A855F7] to-[#EC4899] h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${(generationProgress.current / generationProgress.total) * 100}%` }}
+                            />
+                          </div>
+                          <p className="text-[#8B7AB8] text-sm">
+                            Slide {generationProgress.current} of {generationProgress.total}
+                          </p>
+                        </>
+                      )}
+                      <p className="text-[#8B7AB8] text-sm mt-2">This usually takes less than a minute</p>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                sliders.map((slide: any, index: number) => (
-                  <SliderFrame
-                    slide={slide}
-                    key={index}
-                    colors={projectDetail?.designStyle?.colors}
-                    setUpdateSlider={(updateSlideCode: string) =>
-                      updateSliderCode(updateSlideCode, index)
-                    }
-                  />
-                ))
-              )}
+                ) : (
+                  sliders.map((slide, index: number) => {
+                    const outlineData = projectDetail?.outline?.[index];
+                    return (
+                      <div key={index} className="space-y-4">
+                        {/* Inline Editor */}
+                        {editingSlideIndex === index && outlineData ? (
+                          <InlineSlideEditor
+                            slideData={outlineData}
+                            slideIndex={index}
+                            onUpdate={(idx, updatedData) => {
+                              handleOutlineUpdate(String(idx), updatedData);
+                              setEditingSlideIndex(null);
+                            }}
+                          />
+                        ) : (
+                          /* Slide with Edit Button */
+                          <div className="relative group">
+                            <SliderFrame
+                              slide={slide}
+                              colors={projectDetail?.designStyle?.colors || {}}
+                              setUpdateSlider={(updateSlideCode: string) =>
+                                updateSliderCode(updateSlideCode, index)
+                              }
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
         </>
@@ -374,21 +557,23 @@ function Editor() {
       {/* Fixed bottom export bar */}
       <div className="fixed bottom-0 left-0 right-0 z-40">
         <div className="absolute inset-0 bg-gradient-to-t from-[#0A0118] via-[#0A0118]/95 to-transparent pointer-events-none" />
-        <div className="relative flex justify-center pb-6 pt-12">
-          <Button
-            onClick={exportAllIframesToPPT}
-            variant="cta"
-            size={"lg"}
-            className="gap-2 px-8 shadow-[0_0_32px_-8px_rgba(168,85,247,0.5)]"
-            disabled={downloadLoading}
-          >
-            {downloadLoading ? (
-              <Loader2 className="animate-spin h-4 w-4" />
-            ) : (
-              <FileDown className="h-4 w-4" />
-            )}
-            Export PPT
-          </Button>
+        <div className="relative flex justify-center pb-6 pt-12 px-6">
+          <div className="bg-[#150828] rounded-2xl border border-[#A855F7]/20 p-4 shadow-2xl">
+            <Button
+              onClick={exportAllIframesToPPT}
+              variant="cta"
+              size={"lg"}
+              className="gap-2 px-8 shadow-[0_0_32px_-8px_rgba(168,85,247,0.5)]"
+              disabled={downloadLoading}
+            >
+              {downloadLoading ? (
+                <Loader2 className="animate-spin h-4 w-4" />
+              ) : (
+                <FileDown className="h-4 w-4" />
+              )}
+              Export as PowerPoint
+            </Button>
+          </div>
         </div>
       </div>
     </div>
